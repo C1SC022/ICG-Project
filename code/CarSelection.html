@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drag Race 3D – Car Selection</title>
+
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://threejs.org/build/three.module.js"
+      }
+    }
+  </script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg1: #05060a;
+      --bg2: #071029;
+      --panel: rgba(255, 255, 255, 0.04);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #e8eef6;
+      --muted: rgba(232, 238, 246, 0.68);
+      --pink: #ff2d95;
+      --cyan: #00e6d9;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: Rajdhani, system-ui, sans-serif;
+      color: var(--text);
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 20% 10%, rgba(255, 45, 149, 0.08) 0%, transparent 14%),
+        radial-gradient(ellipse at 80% 90%, rgba(0, 230, 217, 0.06) 0%, transparent 16%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 3px 3px;
+      opacity: 0.08;
+    }
+
+    .split {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      height: 100vh;
+    }
+
+    .panel {
+      position: relative;
+      padding: 1.7rem;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.32));
+      pointer-events: none;
+    }
+
+    .left {
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .right {
+      border-left: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .eyebrow {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      font-size: 0.76rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1, h2 {
+      margin: 0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      color: var(--pink);
+      text-shadow: 0 0 12px rgba(255, 45, 149, 0.2), 0 10px 28px rgba(0, 0, 0, 0.6);
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      color: var(--cyan);
+      text-shadow: 0 0 12px rgba(0, 230, 217, 0.18), 0 10px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 58ch;
+      color: var(--muted);
+      line-height: 1.45;
+      position: relative;
+      z-index: 1;
+    }
+
+    .viewer {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 20px 50px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+
+    #WebGL-output {
+      position: absolute;
+      inset: 0;
+    }
+
+    .arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3.25rem;
+      height: 3.25rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.52);
+      color: var(--text);
+      font-size: 1.7rem;
+      cursor: pointer;
+      z-index: 3;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .arrow:hover {
+      border-color: rgba(0, 230, 217, 0.42);
+      box-shadow: 0 10px 28px rgba(0, 230, 217, 0.08);
+    }
+
+    .arrow.left { left: 1rem; }
+    .arrow.right { right: 1rem; }
+
+    .car-chip {
+      position: absolute;
+      left: 50%;
+      bottom: 4.3rem;
+      transform: translateX(-50%);
+      z-index: 3;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(8px);
+      font-family: Orbitron, sans-serif;
+      letter-spacing: 0.06em;
+      color: var(--cyan);
+    }
+
+    .viewer-actions {
+      position: absolute;
+      left: 50%;
+      bottom: 1rem;
+      transform: translateX(-50%);
+      z-index: 4;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .select-btn {
+      border: 1px solid rgba(0, 230, 217, 0.35);
+      background: linear-gradient(180deg, rgba(0, 230, 217, 0.26), rgba(0, 190, 185, 0.12));
+      color: #dffefd;
+      font-family: Orbitron, sans-serif;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(0, 230, 217, 0.16);
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    .select-btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .arrow:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stats {
+      display: grid;
+      gap: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-card {
+      padding: 0.9rem 1rem;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .stat-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: baseline;
+      margin-bottom: 0.45rem;
+    }
+
+    .stat-label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.8rem;
+      color: rgba(232, 238, 246, 0.66);
+    }
+
+    .stat-value {
+      font-family: Orbitron, sans-serif;
+      color: var(--text);
+    }
+
+    .bar {
+      height: 0.72rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--pink), var(--cyan));
+      box-shadow: 0 0 12px rgba(0, 230, 217, 0.15);
+    }
+
+    @media (max-width: 960px) {
+      body { overflow: auto; }
+      .split {
+        grid-template-columns: 1fr;
+        min-height: 100vh;
+        height: auto;
+      }
+      .panel { min-height: 100vh; }
+      .viewer { min-height: 30rem; }
+    }
+
+    @media (max-width: 640px) {
+      .panel { padding: 1.1rem; }
+      .arrow { width: 2.8rem; height: 2.8rem; }
+      .arrow.left { left: 0.75rem; }
+      .arrow.right { right: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="split">
+    <section class="panel left">
+      <p class="eyebrow">Car Selection</p>
+      <h1>Choose your car</h1>
+      <p class="subtitle">Modelo único do jogo.</p>
+
+      <div class="viewer">
+        <div id="WebGL-output"></div>
+        <div class="car-chip" id="car-name">car1</div>
+        <div class="viewer-actions">
+          <button class="select-btn" id="select-car" type="button">Select Car</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel right">
+      <p class="eyebrow">Relevant stats</p>
+      <h2 id="stats-title">car1</h2>
+      <p class="subtitle" id="stats-text"></p>
+
+      <div class="stats" id="stats"></div>
+    </section>
+  </div>
+  <script src="cars.js"></script>
+  <script src="game.js"></script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'https://threejs.org/examples/jsm/loaders/GLTFLoader.js';
+
+    window.GLTFLoader = GLTFLoader;
+
+    const blenderCarName = 'car1';
+    const carLabels = {
+      car1: 'Balanced runner'
+    };
+
+    const el = {
+      viewer: document.getElementById('WebGL-output'),
+      select: document.getElementById('select-car'),
+      name: document.getElementById('car-name'),
+      title: document.getElementById('stats-title'),
+      text: document.getElementById('stats-text'),
+      stats: document.getElementById('stats')
+    };
+
+    let renderer, scene, camera, carGroup;
+    const carCache = {};
+
+    function getCarSpec(name) {
+      if (!window.CarCatalog || typeof window.CarCatalog.getCarSpec !== 'function') {
+        return null;
+      }
+      return window.CarCatalog.getCarSpec(name);
+    }
+
+    function estimateTopSpeed(spec) {
+      const gear = spec.vehicle.gears[spec.vehicle.gears.length - 1] || 1;
+      const wheelCirc = Math.PI * spec.vehicle.wheelDiameter;
+      return (spec.engine.rpmMax / (spec.vehicle.transmitionRatio * gear)) * wheelCirc * 60 / 1000;
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function toFixedScale(value, max) {
+      return clamp((value / max) * 10, 0, 10);
+    }
+
+    function buildSingleCarStats(spec) {
+      const topSpeed = estimateTopSpeed(spec);
+      return [
+        ['Acceleration', toFixedScale(spec.engine.torqueMax / spec.vehicle.mass, 0.09)],
+        ['Top Speed', toFixedScale(topSpeed, 450)],
+        ['Braking', toFixedScale(spec.vehicle.brakeTorqueMax / spec.vehicle.mass, 0.35)],
+        ['Grip', toFixedScale(1 / spec.vehicle.cx, 5)],
+        ['RPM Max', toFixedScale(spec.engine.rpmMax, 10000)]
+      ];
+    }
+
+    function saveSelectedCar(name) {
+      if (window.CarCatalog && typeof window.CarCatalog.setSelectedCar === 'function') {
+        window.CarCatalog.setSelectedCar(name);
+        return;
+      }
+      try {
+        window.localStorage.setItem('dragRace.selectedCar', name);
+      } catch (err) {
+        // Ignore local storage errors.
+      }
+    }
+
+    function makeCar(name) {
+      const spec = getCarSpec(name);
+      if (!spec) return null;
+      if (window.CarCatalog && typeof window.CarCatalog.createCarMesh === 'function') {
+        return window.CarCatalog.createCarMesh(THREE, name, spec, {
+          mode: 'preview',
+          onModelLoaded: () => {
+            carCache[name] = null;
+            if (blenderCarName === name) {
+              setCar(name);
+            }
+          }
+        });
+      }
+
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.55, 4.2), new THREE.MeshStandardMaterial({ color: 0xff3b2f }));
+      body.position.y = 0.65;
+      group.add(body);
+      group.userData = { name };
+      return group;
+    }
+
+    function createPlatform() {
+      const platform = new THREE.Group();
+
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.2, 4.4, 0.35, 64),
+        new THREE.MeshStandardMaterial({ color: 0x06070b, roughness: 0.95, metalness: 0.1 })
+      );
+      base.position.y = -0.18;
+      platform.add(base);
+
+      const top = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.0, 4.0, 0.08, 64),
+        new THREE.MeshStandardMaterial({ color: 0x0c1221, roughness: 0.7, metalness: 0.15, emissive: 0x08182a, emissiveIntensity: 0.3 })
+      );
+      top.position.y = 0.02;
+      platform.add(top);
+
+      const glow = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.4, 4.4, 0.02, 64),
+        new THREE.MeshStandardMaterial({ color: 0x00e6d9, emissive: 0x00e6d9, emissiveIntensity: 0.9, transparent: true, opacity: 0.25 })
+      );
+      glow.position.y = -0.12;
+      platform.add(glow);
+
+      return platform;
+    }
+
+    function initScene() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050810);
+      scene.fog = new THREE.Fog(0x050810, 14, 40);
+
+      camera = new THREE.PerspectiveCamera(50, el.viewer.clientWidth / el.viewer.clientHeight, 0.1, 100);
+      camera.position.set(0, 2.8, 8);
+      camera.lookAt(0, 0.9, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(el.viewer.clientWidth, el.viewer.clientHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      el.viewer.appendChild(renderer.domElement);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+
+      const key = new THREE.DirectionalLight(0xffffff, 1.1);
+      key.position.set(5, 9, 6);
+      key.castShadow = true;
+      scene.add(key);
+
+      const fill = new THREE.DirectionalLight(0x00e6d9, 0.45);
+      fill.position.set(-6, 2, -4);
+      scene.add(fill);
+
+      scene.add(createPlatform());
+
+      window.addEventListener('resize', onResize);
+    }
+
+    function onResize() {
+      if (!renderer || !camera) return;
+      camera.aspect = el.viewer.clientWidth / el.viewer.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(el.viewer.clientWidth, el.viewer.clientHeight);
+    }
+
+    function setCar(name) {
+      const spec = getCarSpec(name);
+      if (!spec) return;
+
+      if (carGroup) scene.remove(carGroup);
+      if (!carCache[name]) carCache[name] = makeCar(name);
+      carGroup = carCache[name];
+      if (carGroup) {
+        carGroup.scale.multiplyScalar(2.2);
+        scene.add(carGroup);
+        carGroup.rotation.set(0, -0.3, 0);
+      }
+
+      saveSelectedCar(name);
+
+      el.name.textContent = name;
+      el.title.textContent = `${name.toUpperCase()} · ${carLabels[name] || 'Blender Model'}`;
+      el.textContent = '';
+
+      const items = buildSingleCarStats(spec);
+
+      el.stats.innerHTML = items.map(([label, value]) => `
+        <div class="stat-card">
+          <div class="stat-top">
+            <span class="stat-label">${label}</span>
+            <span class="stat-value">${value.toFixed(1)} / 10</span>
+          </div>
+          <div class="bar"><span style="width:${value * 10}%;"></span></div>
+        </div>
+      `).join('');
+
+      el.text.textContent = `${spec.vehicle.mass} kg · ${spec.engine.rpmMax} RPM · ${spec.vehicle.gears.length - 1} gears`;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (carGroup) carGroup.rotation.y += 0.0025;
+      renderer.render(scene, camera);
+    }
+
+    function init() {
+      initScene();
+      el.select.addEventListener('click', () => {
+        saveSelectedCar(blenderCarName);
+        window.location.href = 'index.html';
+      });
+      setCar(blenderCarName);
+      animate();
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('load', init, { once: true });
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
