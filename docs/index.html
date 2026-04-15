@@ -1,36 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en">    
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Drag Race 3D – Test</title>
-<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
-<script type="importmap">
-	{
-		"imports": {
-			"three": "https://threejs.org/build/three.module.js"
-		}
-	}
-</script>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drag Race 3D – Car Selection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* Nighttime clandestine racing style — subtle, neon accents */
+    :root{--bg-top:#05060a;--bg-bottom:#071029;--neon-pink:#ff2d95;--neon-cyan:#00e6d9;--glass:rgba(255,255,255,0.04)}
+    html,body{height:100%;margin:0;font-family:Rajdhani,Orbitron,system-ui,Segoe UI,Helvetica,Arial,sans-serif;color:#e6eef6}
+    body{background:radial-gradient(ellipse at 20% 10%, rgba(255,40,150,0.06) 0%, transparent 12%), radial-gradient(ellipse at 85% 90%, rgba(0,230,217,0.04) 0%, transparent 12%), linear-gradient(180deg,var(--bg-top),var(--bg-bottom));overflow:hidden}
+    .split-container{display:flex;height:100vh;align-items:stretch}
+    .panel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;position:relative;backdrop-filter:blur(4px)}
+    .panel:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.15),rgba(0,0,0,0.35));pointer-events:none}
+    .panel.left{border-right:1px solid rgba(255,255,255,0.04)}
+    .panel.right{border-left:1px solid rgba(255,255,255,0.03)}
+    h2{font-family:Orbitron,sans-serif;font-weight:700;font-size:2.25rem;margin:0 0 .5rem;letter-spacing:1px;text-transform:uppercase;text-shadow:0 6px 20px rgba(0,0,0,0.6)}
+    .panel.left h2{color:var(--neon-pink);text-shadow:0 0 12px rgba(255,45,149,0.22),0 10px 30px rgba(0,0,0,0.6)}
+    .panel.right h2{color:var(--neon-cyan);text-shadow:0 0 12px rgba(0,230,217,0.22),0 10px 30px rgba(0,0,0,0.6)}
+    p{max-width:36ch;text-align:center;opacity:0.9;margin:0 0 1.5rem}
+    .btn-start{padding:.9rem 1.4rem;border-radius:10px;border:0;cursor:pointer;font-weight:700;letter-spacing:.6px;box-shadow:0 6px 30px rgba(0,0,0,0.6);transition:transform .12s ease,box-shadow .12s ease}
+    .btn-start.left{background:linear-gradient(180deg,#111 0%,#1a0516 100%);color:var(--neon-pink);box-shadow:0 6px 24px rgba(255,45,149,0.08),0 2px 8px rgba(0,0,0,0.6);border:1px solid rgba(255,45,149,0.12)}
+    .btn-start.right{background:linear-gradient(180deg,#071017 0%,#00120f 100%);color:var(--neon-cyan);box-shadow:0 6px 24px rgba(0,230,217,0.06),0 2px 8px rgba(0,0,0,0.6);border:1px solid rgba(0,230,217,0.08)}
+    .btn-start:active{transform:translateY(1px)}
+    /* subtle road line at bottom */
+    .split-container:after{content:"";position:absolute;left:0;right:0;bottom:6vh;height:8vh;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.6)),repeating-linear-gradient(90deg,rgba(255,255,255,0.02) 0 8px, transparent 8px 24px);mix-blend-mode:overlay;pointer-events:none}
+    /* grain / film effect */
+    body:after{content:"";position:fixed;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);background-size:3px 3px;opacity:0.06}
+    /* small neon pulse on hover */
+    .btn-start.left:hover{box-shadow:0 10px 40px rgba(255,45,149,0.14)}
+    .btn-start.right:hover{box-shadow:0 10px 40px rgba(0,230,217,0.12)}
+  </style>
 </head>
 <body>
-<div class="dashboard">
-	<div class="meter meter--rpm meter--big-label"></div>
-	<div class="meter meter--gear"><div>N</div></div>
-</div>
+  <div class="split-container">
+    <section class="panel left" aria-label="Solo training">
+      <h2>Solo</h2>
+      <p>Training mode — practice launches and shifting without opponents.</p>
+      <button  onclick="location.href='CarSelection.html'" id="start-solo" class="btn-start left">Start Solo</button>
+    </section>
 
+    <section class="panel right" aria-label="Race 1v1">
+      <h2>Race</h2>
+      <p>1v1 mode — compete against an opponent. Best of one run.</p>
+      <button  onclick="location.href='CarSelection.html'" id="start-race" class="btn-start right">Start Race</button>
+    </section>
+  </div>
 
-<script src="cars.js"></script>
-<script type="module">
-	import * as THREE from 'three';
-	import { GLTFLoader } from 'https://threejs.org/examples/jsm/loaders/GLTFLoader.js';
-	window.THREE = THREE;
-	window.GLTFLoader = GLTFLoader;
-
-	const gameScript = document.createElement('script');
-	gameScript.src = 'game.js';
-	document.body.appendChild(gameScript);
-</script>
+  <script src="game.js"></script>
 </body>
 </html>
