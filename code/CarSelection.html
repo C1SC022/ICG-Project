@@ -9,7 +9,8 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://threejs.org/build/three.module.js"
+        "three": "https://threejs.org/build/three.module.js",
+        "three/addons/": "https://threejs.org/examples/jsm/"
       }
     }
   </script>
@@ -322,7 +323,7 @@
 
   <script type="module">
     import * as THREE from 'three';
-    import { GLTFLoader } from 'https://threejs.org/examples/jsm/loaders/GLTFLoader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     window.GLTFLoader = GLTFLoader;
 
