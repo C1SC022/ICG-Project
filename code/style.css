@@ -52,3 +52,25 @@
 
 
 body{margin:0;min-height:100vh;background:#050810;text-align:center;overflow:hidden}
+
+.race-overlay{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:30;color:#f3f7ff;font-family:'Roboto Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;text-shadow:0 6px 18px rgba(0,0,0,0.6);pointer-events:none}
+.race-overlay.hidden{display:none}
+
+.race-overlay--countdown{font-size:clamp(3rem,12vw,6rem);font-weight:700;line-height:1;padding:0.4rem 1.2rem;border:1px solid rgba(255,255,255,0.3);border-radius:0.7rem;background:linear-gradient(160deg,rgba(4,11,28,0.86),rgba(11,24,61,0.68));box-shadow:0 20px 34px rgba(0,0,0,0.45)}
+
+.race-overlay--finish{top:18%;min-width:min(82vw,420px);padding:1rem 1.2rem;border:1px solid rgba(255,255,255,0.24);border-radius:0.75rem;background:linear-gradient(165deg,rgba(6,18,44,0.9),rgba(8,29,73,0.75));box-shadow:0 22px 36px rgba(0,0,0,0.5)}
+.race-overlay__title{font-size:0.95rem;opacity:0.8}
+.race-overlay__time{margin-top:0.35rem;font-size:clamp(1.8rem,5.6vw,2.6rem);font-weight:700;color:#8effc2}
+
+.race-controls{position:fixed;right:1rem;top:1rem;z-index:35;display:flex;gap:0.5rem}
+.race-btn{appearance:none;border:1px solid rgba(255,255,255,0.32);background:linear-gradient(160deg,rgba(21,44,96,0.88),rgba(9,24,58,0.78));color:#eef5ff;font-family:'Roboto Mono',monospace;font-size:0.85rem;letter-spacing:0.04em;text-transform:uppercase;padding:0.5rem 0.75rem;border-radius:0.45rem;cursor:pointer;transition:transform .14s ease,background .14s ease,border-color .14s ease}
+.race-btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,0.5)}
+.race-btn:active{transform:translateY(0)}
+.race-btn--secondary{background:linear-gradient(160deg,rgba(56,57,62,0.9),rgba(23,24,28,0.8))}
+
+@media (max-width: 720px){
+	.race-overlay{top:14%}
+	.race-overlay--finish{top:12%}
+	.race-controls{right:0.6rem;top:0.6rem;gap:0.4rem}
+	.race-btn{font-size:0.74rem;padding:0.45rem 0.6rem}
+}

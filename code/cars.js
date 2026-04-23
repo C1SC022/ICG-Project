@@ -142,30 +142,22 @@ window.CarCatalog = {
         const leftPos = root.worldToLocal(new THREE.Vector3(leftX, y, z));
         const rightPos = root.worldToLocal(new THREE.Vector3(rightX, y, z));
 
-        const frontIntensity = mode === 'preview' ? 1.4 : 2.1;
-        const frontDistance = mode === 'preview' ? 7 : 18;
+        const frontIntensity = mode === 'preview' ? 4.5 : 9;
+        const frontDistance = mode === 'preview' ? 15 : 45;
 
-        const leftLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, Math.PI / 7, 0.5, 1.2);
+        const leftLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, 1.2, 0.45, 0.2);
         leftLight.castShadow = false;
         leftLight.position.copy(leftPos);
-        leftLight.target.position.set(leftPos.x, leftPos.y - 0.04, leftPos.z + (mode === 'preview' ? 3 : 10));
+        leftLight.target.position.set(leftPos.x, leftPos.y , leftPos.z + (mode === 'preview' ? 7 : 2));
         root.add(leftLight);
         root.add(leftLight.target);
 
-        const rightLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, Math.PI / 7, 0.5, 1.2);
+        const rightLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, 1.2, 0.45, 0.2);
         rightLight.castShadow = false;
         rightLight.position.copy(rightPos);
-        rightLight.target.position.set(rightPos.x, rightPos.y - 0.04, rightPos.z + (mode === 'preview' ? 3 : 10));
+        rightLight.target.position.set(rightPos.x , rightPos.y , rightPos.z + (mode === 'preview' ? 2 : 2  ));
         root.add(rightLight);
         root.add(rightLight.target);
-
-        const leftGlow = new THREE.PointLight(0xfff8de, mode === 'preview' ? 0.5 : 0.85, mode === 'preview' ? 3.4 : 5.6);
-        leftGlow.position.copy(leftPos);
-        root.add(leftGlow);
-
-        const rightGlow = new THREE.PointLight(0xfff8de, mode === 'preview' ? 0.5 : 0.85, mode === 'preview' ? 3.4 : 5.6);
-        rightGlow.position.copy(rightPos);
-        root.add(rightGlow);
       }
 
       if (rearMesh) {

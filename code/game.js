@@ -207,6 +207,20 @@ function initApp() {
 
 
 	let gearMeter = document.querySelector('.meter--gear div') || null;
+	let countdownOverlay = document.getElementById('raceCountdown') || null;
+	let finishOverlay = document.getElementById('raceFinish') || null;
+	let finishTimeLabel = document.getElementById('raceFinishTime') || null;
+	let restartRaceBtn = document.getElementById('restartRaceBtn') || null;
+	let menuRaceBtn = document.getElementById('menuRaceBtn') || null;
+
+	const RACE_COUNTDOWN_SECONDS = 5;
+	const RACE_FINISH_DISTANCE_METERS = 400;
+	const SHIFT_PENALTY_BRAKE_LIGHT = 0.35;
+	const SHIFT_PENALTY_BRAKE_HEAVY = 0.6;
+	const SHIFT_PENALTY_DURATION_LIGHT = 0.2;
+	const SHIFT_PENALTY_DURATION_HEAVY = 0.38;
+	const SHIFT_PENALTY_TORQUE_LIGHT = 0.88;
+	const SHIFT_PENALTY_TORQUE_HEAVY = 0.74;
 	
 	// USER INPUTS
 	
@@ -250,6 +264,9 @@ function initApp() {
 	}	
 	
 	function gearUp() {
+		if (raceState !== 'racing') {
+			return;
+		}
 		if (gear < gears.length - 1) {
 			let prev = gear;
 			gear++;
@@ -259,6 +276,9 @@ function initApp() {
 	}
 
 	function gearDown() {
+		if (raceState !== 'racing') {
+			return;
+		}
 		if (gear > 0) {
 			let prev = gear;
 			gear--;
@@ -373,6 +393,7 @@ function initApp() {
 			shiftWindows = calculateShiftWindows();
 			launchWindow = calculateLaunchWindow();
 			updateShiftWindowUI();
+			startCountdown();
 			// show the 3D car model if three.js is available
 			if (typeof showCarMesh === 'function') {
 				showCarMesh(name);
@@ -441,6 +462,14 @@ function initApp() {
 	let currentLookX = 0;
 	let targetLookX = 0;
 	let playerTravelZ = 0;
+	let moonLight = null;
+	let moonFillLight = null;
+	let policeLightRig = null;
+	let policeBlueLight = null;
+	let policeRedLight = null;
+	let policeBlueTarget = null;
+	let policeRedTarget = null;
+	let policeLightTime = 0;
 
 	function loadStreetLightTemplate(onReady) {
 		if (streetLightTemplate) {
@@ -562,7 +591,12 @@ function initApp() {
 	function buildRoadAndLights() {
 		if (!scene || typeof THREE === 'undefined') return;
 
-		const roadMat = new THREE.MeshLambertMaterial({ color: 0x1b1c20 });
+		const roadMat = new THREE.MeshPhongMaterial({
+			color: 0x1b1c20,
+			specular: 0x2f4f8c,
+			shininess: 42,
+			reflectivity: 0.35
+		});
 		const shoulderMat = new THREE.MeshLambertMaterial({ color: 0x27292e });
 		const sideLineMat = new THREE.MeshLambertMaterial({ color: 0xf7f7f7 });
 		const centerLineMat = new THREE.MeshLambertMaterial({ color: 0xffd54a });
@@ -657,6 +691,97 @@ function initApp() {
 		recycleStreamPool(streamedStreetLightPairs, STREET_LIGHT_STEP);
 	}
 
+	function setupAtmosphereLights() {
+		if (!scene || typeof THREE === 'undefined') return;
+
+		if (moonLight && moonLight.parent) {
+			moonLight.parent.remove(moonLight);
+		}
+		if (moonFillLight && moonFillLight.parent) {
+			moonFillLight.parent.remove(moonFillLight);
+		}
+		if (policeLightRig && policeLightRig.parent) {
+			policeLightRig.parent.remove(policeLightRig);
+		}
+		if (policeBlueTarget && policeBlueTarget.parent) {
+			policeBlueTarget.parent.remove(policeBlueTarget);
+		}
+		if (policeRedTarget && policeRedTarget.parent) {
+			policeRedTarget.parent.remove(policeRedTarget);
+		}
+		moonLight = new THREE.DirectionalLight(0xb9c8ff, 0.55);
+		moonLight.position.set(-35, 75, -65);
+		moonLight.target.position.set(0, 0, 35);
+		scene.add(moonLight);
+		scene.add(moonLight.target);
+
+		moonFillLight = new THREE.HemisphereLight(0x94a7ff, 0x10131d, 0.24);
+		scene.add(moonFillLight);
+
+		policeLightRig = new THREE.Group();
+		policeLightRig.position.set(CAMERA_BASE_POS.x - 18, CAMERA_BASE_POS.y + 1.2, CAMERA_BASE_POS.z + 6);
+
+		const policeAnchor = new THREE.Mesh(
+			new THREE.SphereGeometry(0.18, 10, 10),
+			new THREE.MeshBasicMaterial({ color: 0x05070d, transparent: true, opacity: 0 })
+		);
+		policeLightRig.add(policeAnchor);
+
+		policeBlueLight = new THREE.SpotLight(0x3d79ff, 2.6, 900,  Math.PI / 7, 0.5, 0.2);
+		policeBlueLight.position.set(-3, 1.2, -6);
+		policeBlueTarget = new THREE.Object3D();
+		scene.add(policeBlueTarget);
+		policeBlueLight.target = policeBlueTarget;
+		policeLightRig.add(policeBlueLight);
+
+		policeRedLight = new THREE.SpotLight(0xff3344, 2.6, 900, Math.PI / 7, 0.5, 0.2);
+		policeRedLight.position.set(-3.0, 1.6, -6);
+		policeRedTarget = new THREE.Object3D();
+		scene.add(policeRedTarget);
+		policeRedLight.target = policeRedTarget;
+		policeLightRig.add(policeRedLight);
+
+		scene.add(policeLightRig);
+		policeLightTime = 0;
+	}
+
+	function updateAtmosphereLights(deltaSeconds) {
+		if (!moonLight || !moonFillLight || !policeBlueLight || !policeRedLight || !policeBlueTarget || !policeRedTarget) return;
+
+		if (deltaSeconds > 0) {
+			policeLightTime += deltaSeconds;
+		}
+
+		if (policeLightRig && camera) {
+			const targetMesh = getCurrentMesh();
+			const targetX = targetMesh ? targetMesh.position.x : CAR_BASE_POS.x;
+			const targetY = targetMesh ? targetMesh.position.y : CAR_BASE_POS.y;
+			const targetZ = targetMesh ? targetMesh.position.z : (CAR_BASE_POS.z + playerTravelZ);
+
+			// Place the police rig in front of the car as requested
+			policeLightRig.position.set(
+				targetX,
+				targetY + 2.0,
+				targetZ + 28
+			);
+
+			// Targets stay slightly above the car so the spotlights point at the car
+			policeBlueTarget.position.set(targetX, targetY + 0.7, targetZ + 0.6);
+			policeRedTarget.position.set(targetX, targetY + 0.7, targetZ + 0.6);
+		}
+
+		const blinkCycle = policeLightTime % 0.72;
+		const bluePhase = blinkCycle < 0.36;
+		const pulse = 0.35 + 0.65 * Math.max(0, Math.sin(policeLightTime * 10.5));
+
+		const nearIntensity = 1.9 * pulse;
+		policeBlueLight.intensity = bluePhase ? nearIntensity : 0.03;
+		policeRedLight.intensity = bluePhase ? 0.03 : nearIntensity;
+
+		moonLight.intensity = 0.48 + 0.06 * Math.sin(policeLightTime * 0.25);
+		moonFillLight.intensity = 0.22 + 0.03 * Math.sin(policeLightTime * 0.2);
+	}
+
 	function initThree() {
 		if (typeof THREE === 'undefined') {
 			console.warn('THREE.js not found — include three.js to render 3D cars');
@@ -687,6 +812,7 @@ function initApp() {
 		}
 
 		// No global scene lights: street light poles are the only light sources.
+		setupAtmosphereLights();
 
 		// Place camera on the road (driver/pedestrian position) and look down the track
 		camera.position.set(CAMERA_BASE_POS.x, CAMERA_BASE_POS.y, CAMERA_BASE_POS.z);
@@ -789,6 +915,14 @@ function initApp() {
 			rpm = 0,
 			isAccelerating = false,
 			isBraking = false;
+
+	let raceState = 'countdown';
+	let countdownLeft = RACE_COUNTDOWN_SECONDS;
+	let countdownDisplayValue = RACE_COUNTDOWN_SECONDS;
+	let raceElapsedTime = 0;
+	let penaltyBrakeTimer = 0;
+	let penaltyBrakeLevel = 0;
+	let penaltyTorqueFactor = 1;
 	
 
 	// Helper functions
@@ -942,6 +1076,138 @@ function initApp() {
 
 		if (rpmMeter) rpmMeter.setWindow(window.min, window.max, window.target, rpm);
 	}
+
+	function showCountdown(value) {
+		if (!countdownOverlay) return;
+		countdownOverlay.classList.remove('hidden');
+		countdownOverlay.textContent = String(value);
+	}
+
+	function hideCountdown() {
+		if (!countdownOverlay) return;
+		countdownOverlay.classList.add('hidden');
+	}
+
+	function showFinish(timeSeconds) {
+		if (finishTimeLabel) {
+			finishTimeLabel.textContent = timeSeconds.toFixed(2) + 's';
+		}
+		if (finishOverlay) {
+			finishOverlay.classList.remove('hidden');
+		}
+	}
+
+	function hideFinish() {
+		if (!finishOverlay) return;
+		finishOverlay.classList.add('hidden');
+	}
+
+	function getGreenWindow(window) {
+		if (!window) return null;
+		let span = Math.max(0, window.max - window.min);
+		let greenSpan = Math.max(25, span * 0.28);
+		return {
+			min: Math.max(window.min, window.target - greenSpan / 2),
+			max: Math.min(window.max, window.target + greenSpan / 2)
+		};
+	}
+
+	function setPenalty(level) {
+		if (level === 'light') {
+			penaltyBrakeTimer = Math.max(penaltyBrakeTimer, SHIFT_PENALTY_DURATION_LIGHT);
+			penaltyBrakeLevel = Math.max(penaltyBrakeLevel, SHIFT_PENALTY_BRAKE_LIGHT);
+			penaltyTorqueFactor = Math.min(penaltyTorqueFactor, SHIFT_PENALTY_TORQUE_LIGHT);
+			return;
+		}
+
+		penaltyBrakeTimer = Math.max(penaltyBrakeTimer, SHIFT_PENALTY_DURATION_HEAVY);
+		penaltyBrakeLevel = Math.max(penaltyBrakeLevel, SHIFT_PENALTY_BRAKE_HEAVY);
+		penaltyTorqueFactor = Math.min(penaltyTorqueFactor, SHIFT_PENALTY_TORQUE_HEAVY);
+	}
+
+	function applyLaunchPenalty(launchRpm) {
+		if (!launchWindow) {
+			return;
+		}
+
+		let greenWindow = getGreenWindow(launchWindow);
+		if (greenWindow && launchRpm >= greenWindow.min && launchRpm <= greenWindow.max) {
+			return;
+		}
+
+		if (launchRpm >= launchWindow.min && launchRpm <= launchWindow.max) {
+			setPenalty('light');
+			return;
+		}
+
+		setPenalty('heavy');
+	}
+
+	function startCountdown() {
+		raceState = 'countdown';
+		countdownLeft = RACE_COUNTDOWN_SECONDS;
+		countdownDisplayValue = RACE_COUNTDOWN_SECONDS;
+		raceElapsedTime = 0;
+		penaltyBrakeTimer = 0;
+		penaltyBrakeLevel = 0;
+		penaltyTorqueFactor = 1;
+		playerTravelZ = 0;
+		speed = 0;
+		rpm = rpmIdle;
+		buildRoadAndLights();
+
+		gear = 0;
+		if (gearMeter) gearMeter.innerHTML = 'N';
+		if (gearMeter) gearMeter.classList.remove('redzone');
+
+		hideFinish();
+		showCountdown(countdownDisplayValue);
+	}
+
+	function startRaceNow() {
+		if (raceState !== 'countdown') {
+			return;
+		}
+
+		let launchRpm = rpm;
+
+		let prev = gear;
+		gear = 1;
+		if (gearMeter) gearMeter.innerHTML = '1';
+		engageGear(prev, gear);
+		applyLaunchPenalty(launchRpm);
+
+		raceState = 'racing';
+		raceElapsedTime = 0;
+		hideCountdown();
+	}
+
+	function finishRace() {
+		if (raceState !== 'racing') {
+			return;
+		}
+
+		raceState = 'finished';
+		speed = 0;
+		isAccelerating = false;
+		isBraking = false;
+		penaltyBrakeTimer = 0;
+		penaltyBrakeLevel = 0;
+		penaltyTorqueFactor = 1;
+		showFinish(raceElapsedTime);
+	}
+
+	if (restartRaceBtn) {
+		restartRaceBtn.addEventListener('click', function () {
+			startCountdown();
+		});
+	}
+
+	if (menuRaceBtn) {
+		menuRaceBtn.addEventListener('click', function () {
+			window.location.href = '../index.html';
+		});
+	}
 	
 	// Physics 101
 	/* 
@@ -969,24 +1235,56 @@ function initApp() {
 		nowTime = new Date().getTime();
 		delta = (nowTime - lastTime) / 1000; // in seconds
 		lastTime = nowTime;
+
+		if (raceState === 'countdown') {
+			countdownLeft = Math.max(0, countdownLeft - delta);
+			let nextDisplay = Math.ceil(countdownLeft);
+			if (nextDisplay !== countdownDisplayValue) {
+				countdownDisplayValue = nextDisplay;
+				if (countdownDisplayValue > 0) {
+					showCountdown(countdownDisplayValue);
+				}
+			}
+
+			gear = 0;
+			speed = 0;
+			isBraking = false;
+
+			if (countdownLeft <= 0) {
+				startRaceNow();
+			}
+		}
+
+		if (raceState === 'racing') {
+			raceElapsedTime += delta;
+			isAccelerating = true;
+			isBraking = false;
+		}
 		
 		let oldSpeed = speed,
 				oldRpm = rpm;
 		
 		// Torque
 		
-		if (isAccelerating && rpm < rpmMax) {	// Gas!
+		if (raceState === 'racing' && isAccelerating && rpm < rpmMax) {	// Gas!
 			torque = torqueByRpm(rpm);
 
 		} else {
 			torque = -(rpm * rpm / 1000000);
 		}
 		
-		if (isBraking) {	// Ooops...
+		if (raceState === 'finished') {
 			brakeTorque = brakeTorqueMax;
 		} else {
-			brakeTorque = 0;
-		} 
+			if (penaltyBrakeTimer > 0) {
+				penaltyBrakeTimer = Math.max(0, penaltyBrakeTimer - delta);
+				brakeTorque = brakeTorqueMax * penaltyBrakeLevel;
+			} else {
+				penaltyBrakeLevel = 0;
+				penaltyTorqueFactor = 1;
+				brakeTorque = 0;
+			}
+		}
 		
 		
 		// Transmission and wheel torque
@@ -999,6 +1297,9 @@ function initApp() {
 		} else {
 			overallRatio = transmitionRatio * gears[gear];
 			wheelTorque = torque / overallRatio - brakeTorque;
+			if (raceState === 'racing' && penaltyTorqueFactor < 1) {
+				wheelTorque *= penaltyTorqueFactor;
+			}
 			// apply clutch torque boost if engaging
 			if (clutchTimer > 0) {
 				wheelTorque += clutchTorqueBoost;
@@ -1015,6 +1316,7 @@ function initApp() {
 		
 		
 		if (speed < 0) { speed = 0; }
+		if (raceState === 'finished') { speed = 0; }
 		
 		wheelRpm = speed / (60 * (Math.PI * wheelDiameter / 1000));
 		// Engine RPM
@@ -1035,6 +1337,9 @@ function initApp() {
 
 		// Ensure RPM doesn't drop below idle
 		if (rpm < rpmIdle) {
+			rpm = rpmIdle;
+		}
+		if (raceState === 'finished') {
 			rpm = rpmIdle;
 		}
 		
@@ -1063,7 +1368,13 @@ function initApp() {
 		}
 
 		syncCarWithCamera(delta);
+
+		if (raceState === 'racing' && Math.abs(playerTravelZ) >= RACE_FINISH_DISTANCE_METERS) {
+			finishRace();
+		}
+
 		updateStreamedWorld(delta);
+		updateAtmosphereLights(delta);
 
 		// update controls (free camera) then render three.js scene
 		// No free-camera controls active — camera is fixed to road position
@@ -1072,6 +1383,8 @@ function initApp() {
 		}
 
 	})();
+
+	startCountdown();
 	
 	///////////////////////////////////////////////
 	// WEBAUDIO
