@@ -28,26 +28,58 @@ window.CarCatalog = {
         slipDrag: 0.0008
       },
       initialState: { gear: 0, speed: 0 }
+    },
+    car2: {
+      vehicle: {
+        mass: 1200,
+        cx: 0.32,
+        gears: [0, 0.45, 0.75, 1.05, 1.35, 1.55, 1.75],
+        transmitionRatio: 0.18,
+        transmitionLoss: 0.15,
+        wheelDiameter: 0.52,
+        brakeTorqueMax: 350
+      },
+      engine: {
+        rpmIdle: 1000,
+        rpmMax: 9000,
+        rpmRedzone: 8200,
+        torqueMin: 25,
+        torqueMax: 58,
+        torquePeak: 6500,
+        torqueSigma: 1200
+      },
+      clutch: {
+        revUpRate: 3000,
+        idleReturnRate: 2.2,
+        engageTime: 0.22,
+        boostMultiplier: 450,
+        slipDrag: 0.0007
+      },
+      initialState: { gear: 0, speed: 0 }
     }
   },
   getCarList() {
-    return ['car1'];
+    return ['car1', 'car2'];
   },
   getCarSpec(name) {
-    return name === 'car1' ? this.specs.car1 : null;
+    return this.specs[name] || null;
   },
   getDefaultCarName() {
     return 'car1';
   },
   getSelectedCar() {
-    return 'car1';
+    try {
+      return window.localStorage.getItem(this.selectedCarStorageKey) || 'car1';
+    } catch (e) {
+      return 'car1';
+    }
   },
   setSelectedCar(name) {
-    if (name !== 'car1') return;
+    if (!this.specs[name]) return;
     try {
       window.localStorage.setItem(this.selectedCarStorageKey, name);
     } catch (err) {
-      // Ignore storage failures (private mode / blocked storage).
+      // Ignore storage failures
     }
   },
   estimateTopSpeed(spec) {
@@ -72,33 +104,88 @@ window.CarCatalog = {
     if (!THREE || !spec) return null;
 
     const catalog = this;
-    const loaderClass = window.GLTFLoader;
     const mode = options.mode || 'default';
 
-    if (!catalog._blenderCarQueue) {
-      catalog._blenderCarQueue = [];
-    }
+    if (!catalog._carQueues) catalog._carQueues = {};
+    if (!catalog._carTemplates) catalog._carTemplates = {};
+    if (!catalog._carLoading) catalog._carLoading = {};
+    
+    if (catalog._carTemplates[name]) {
+      const fromModel = catalog._carTemplates[name].clone(true);
 
-    if (catalog._blenderCarTemplate) {
-      const fromBlender = catalog._blenderCarTemplate.clone(true);
-      fromBlender.scale.setScalar(mode === 'preview' ? 0.72 : 0.62);
+      // Normalize scale so both cars have roughly the same length (z-axis)
+      // Use only meshes for bounding box to avoid "exploded" models caused by far pivots or helpers
+      let meshBounds = new THREE.Box3();
+      fromModel.traverse(node => { 
+          if (node.isMesh) {
+              // Ensure geometry bounding box is up to date
+              if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+              meshBounds.expandByObject(node); 
+          }
+      });
 
-      const bounds = new THREE.Box3().setFromObject(fromBlender);
-      const center = bounds.getCenter(new THREE.Vector3());
-      fromBlender.position.x -= center.x;
-      fromBlender.position.z -= center.z;
-      fromBlender.position.y -= bounds.min.y;
+      const size = meshBounds.getSize(new THREE.Vector3());
+      const center = meshBounds.getCenter(new THREE.Vector3());
+      
+      // Center the model relative to its own group origin first
+      fromModel.position.x -= center.x;
+      fromModel.position.y -= center.y;
+      fromModel.position.z -= center.z;
+
+      const targetLength = 4.5; // Base car length in world units
+      const currentLength = size.z > 0 ? size.z : 1;
+      const normalizationScale = targetLength / currentLength;
+      const baseModeScale = (mode === 'preview' ? 0.72 : 0.62);
+      
+      fromModel.scale.setScalar(normalizationScale * baseModeScale);
+
+      // Re-calculate bounds after scaling to place on ground
+      const normBounds = new THREE.Box3().setFromObject(fromModel);
+      fromModel.position.y -= normBounds.min.y;
 
       const root = new THREE.Group();
-      root.add(fromBlender);
+      root.add(fromModel);
 
-      // Add vehicle lights from Blender mesh names.
+      // Add vehicle lights
       let frontMesh = null;
       let rearMesh = null;
-      fromBlender.traverse(function(node) {
+
+      fromModel.traverse(function(node) {
         if (!node.isMesh) return;
-        if (node.name === 'Farol_F' || node.name.indexOf('Farol_F') >= 0) frontMesh = node;
-        if (node.name === 'Farol_B' || node.name.indexOf('Farol_B') >= 0) rearMesh = node;
+        
+        // Ensure double sided rendering for all parts
+        if (node.material) {
+            const materials = Array.isArray(node.material) ? node.material : [node.material];
+            materials.forEach(m => {
+                m.side = THREE.DoubleSide;
+                
+                // Special for car2: make red_light and glass materials glow
+                if (name === 'car2' && m.name) {
+                    const mn = m.name.toLowerCase();
+                    if (mn.indexOf('red_light') >= 0) {
+                        m.emissive = new THREE.Color(0xff0000);
+                        m.emissiveIntensity = mode === 'preview' ? 1.0 : 2.5;
+                    }
+                    if (mn.indexOf('glass') >= 0) {
+                        // Headlights
+                        m.emissive = new THREE.Color(0xffffff);
+                        m.emissiveIntensity = mode === 'preview' ? 0.5 : 1.5;
+                    }
+                }
+            });
+        }
+
+        const n = node.name.toLowerCase();
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        const hasFrontMat = materials.some(m => m.name && (m.name.toLowerCase().indexOf('glass') >= 0 || m.name.toLowerCase().indexOf('headlight') >= 0));
+        const hasRearMat = materials.some(m => m.name && (m.name.toLowerCase().indexOf('red_light') >= 0 || m.name.toLowerCase().indexOf('taillight') >= 0));
+
+        // Updated search terms for Dodge Charger and other models
+        const isFront = hasFrontMat || n.indexOf('farol_f') >= 0 || n.indexOf('headlight') >= 0;
+        const isRear = hasRearMat || n.indexOf('farol_b') >= 0 || n.indexOf('taillight') >= 0 || n.indexOf('arka') >= 0;
+
+        if (isFront && !frontMesh) frontMesh = node;
+        if (isRear && !rearMesh) rearMesh = node;
       });
 
       root.updateMatrixWorld(true);
@@ -109,14 +196,22 @@ window.CarCatalog = {
 
       function getLightAnchorBox(mesh) {
         if (!mesh) return null;
-
         const emissiveBox = new THREE.Box3();
         let hasEmissiveMesh = false;
 
         mesh.traverse(function(node) {
           if (!node.isMesh || !node.material) return;
           const materials = Array.isArray(node.material) ? node.material : [node.material];
-          const isLightMaterial = materials.some((mat) => hasEmissiveMaterial(mat) || (mat && typeof mat.name === 'string' && mat.name.indexOf('Material.002') >= 0));
+          const isLightMaterial = materials.some((mat) => 
+            hasEmissiveMaterial(mat) || 
+            (mat && mat.name && (
+                mat.name.indexOf('Led') >= 0 || 
+                mat.name.indexOf('Light') >= 0 || 
+                mat.name.indexOf('red_light') >= 0 || 
+                mat.name.indexOf('glass') >= 0 ||
+                mat.name.indexOf('Material.002') >= 0
+            ))
+          );
           if (!isLightMaterial) return;
           emissiveBox.expandByObject(node);
           hasEmissiveMesh = true;
@@ -130,10 +225,11 @@ window.CarCatalog = {
         const width = Math.max(0.25, box.max.x - box.min.x);
         const centerX = (box.min.x + box.max.x) * 0.5;
         const y = box.min.y + (box.max.y - box.min.y) * 0.86;
-        const z = box.max.z - 0.01;
+        const carBox = new THREE.Box3().setFromObject(fromModel);
+        const z = carBox.max.z + 0.15; // Placed slightly in front of the bumper
 
-        let leftX = box.min.x + width * 0.06;
-        let rightX = box.max.x - width * 0.06;
+        let leftX = box.min.x + width * 0.1;
+        let rightX = box.max.x - width * 0.1;
         if (rightX - leftX < 0.7) {
           leftX = centerX - 0.45;
           rightX = centerX + 0.45;
@@ -146,14 +242,12 @@ window.CarCatalog = {
         const frontDistance = mode === 'preview' ? 15 : 45;
 
         const leftLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, 1.2, 0.45, 0.2);
-        leftLight.castShadow = false;
         leftLight.position.copy(leftPos);
         leftLight.target.position.set(leftPos.x, leftPos.y , leftPos.z + (mode === 'preview' ? 7 : 2));
         root.add(leftLight);
         root.add(leftLight.target);
 
         const rightLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, 1.2, 0.45, 0.2);
-        rightLight.castShadow = false;
         rightLight.position.copy(rightPos);
         rightLight.target.position.set(rightPos.x , rightPos.y , rightPos.z + (mode === 'preview' ? 2 : 2  ));
         root.add(rightLight);
@@ -176,12 +270,10 @@ window.CarCatalog = {
           const x = xStart + (xEnd - xStart) * t;
           const rearPos = root.worldToLocal(new THREE.Vector3(x, rearY, rearZ));
           const rearLight = new THREE.PointLight(0xff1b1b, mode === 'preview' ? 0.22 : 0.44, mode === 'preview' ? 2.6 : 4.4);
-          rearLight.castShadow = false;
           rearLight.position.copy(rearPos);
           root.add(rearLight);
         }
 
-        // Add a physical rear light bar so the taillight reads as a line, not only point lights.
         const bar = new THREE.Mesh(
           new THREE.PlaneGeometry((xEnd - xStart) * 0.98, Math.max(0.04, height * 0.38)),
           new THREE.MeshStandardMaterial({
@@ -198,40 +290,58 @@ window.CarCatalog = {
         root.add(bar);
       }
 
-      root.userData = { spec, name, source: 'blender' };
+      root.userData = { spec, name, source: 'model' };
       return root;
     }
 
-    if (!catalog._blenderCarLoading && loaderClass) {
-      catalog._blenderCarLoading = true;
-      const loader = new loaderClass();
-      loader.load(
-        '../blender_models/car1.gltf',
-        function(gltf) {
-          catalog._blenderCarTemplate = gltf.scene;
-          catalog._blenderCarTemplate.traverse(function(node) {
-            if (node.isMesh) {
-              node.castShadow = true;
-              node.receiveShadow = true;
-            }
-          });
+    if (!catalog._carLoading[name]) {
+      catalog._carLoading[name] = true;
+      catalog._carQueues[name] = catalog._carQueues[name] || [];
+      
+      let loader;
+      let modelPath;
+      
+      if (name === 'car2' && window.GLTFLoader) {
+        loader = new window.GLTFLoader();
+        modelPath = '../blender_models/car2/Dodge Charger.glb';
+      } 
+      
+      if (name === 'car1' && window.GLTFLoader) {
+        loader = new window.GLTFLoader();
+        modelPath = '../blender_models/car1.gltf';
+      }
 
-          const callbacks = catalog._blenderCarQueue.slice();
-          catalog._blenderCarQueue = [];
-          catalog._blenderCarLoading = false;
-          callbacks.forEach(function(cb) { cb(); });
-        },
-        undefined,
-        function(error) {
-          catalog._blenderCarLoading = false;
-          catalog._blenderCarQueue = [];
-          console.error('Failed to load blender car model car1.gltf', error);
-        }
-      );
+      if (loader && modelPath) {
+          loader.load(modelPath, function(result) {
+            const scene = result.scene || result.library?.visual_scenes?.[0] || result;
+            catalog._carTemplates[name === 'car1' ? 'car1' : 'car2'] = scene;
+            scene.traverse(function(node) {
+              if (node.isMesh) {
+                node.castShadow = true;
+                node.receiveShadow = true;
+                if (node.material) {
+                    if (Array.isArray(node.material)) {
+                        node.material.forEach(m => m.side = THREE.DoubleSide);
+                    } else {
+                        node.material.side = THREE.DoubleSide;
+                    }
+                }
+              }
+            });
+            const callbacks = catalog._carQueues[name].slice();
+            catalog._carQueues[name] = [];
+            catalog._carLoading[name] = false;
+            callbacks.forEach((cb) => cb());
+          }, undefined, function(err) {
+            console.error('Failed to load car model', modelPath, err);
+            catalog._carLoading[name] = false;
+          });
+      }
     }
 
     if (typeof options.onModelLoaded === 'function') {
-      catalog._blenderCarQueue.push(options.onModelLoaded);
+      catalog._carQueues[name] = catalog._carQueues[name] || [];
+      catalog._carQueues[name].push(options.onModelLoaded);
     }
 
     return null;

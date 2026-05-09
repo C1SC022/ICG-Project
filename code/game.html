@@ -16,14 +16,20 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="dashboard">
-	<div class="meter meter--rpm meter--big-label"></div>
-	<div class="meter meter--gear"><div>N</div></div>
+<div class="dashboard dashboard--p1">
+	<div class="meter meter--rpm meter--p1 meter--big-label"></div>
+	<div class="meter meter--gear meter--p1"><div>N</div></div>
+</div>
+
+<div class="dashboard dashboard--p2 hidden-solo" style="display:none">
+	<div class="meter meter--gear meter--p2"><div>N</div></div>
+	<div class="meter meter--rpm meter--p2 meter--big-label"></div>
 </div>
 
 <div id="raceCountdown" class="race-overlay race-overlay--countdown hidden">5</div>
 <div id="raceFinish" class="race-overlay race-overlay--finish hidden">
 	<div class="race-overlay__title">Finish</div>
+	<div id="raceWinner" class="race-overlay__winner">PLAYER 1 WINS</div>
 	<div id="raceFinishTime" class="race-overlay__time">0.00s</div>
 </div>
 
@@ -37,11 +43,22 @@
 <script type="module">
 	import * as THREE from 'three';
 	import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+	import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
 	window.THREE = THREE;
 	window.GLTFLoader = GLTFLoader;
+	window.ColladaLoader = ColladaLoader;
+
+	const urlParams = new URLSearchParams(window.location.search);
+	const isMulti = urlParams.get('mode') === 'multi';
+	
+	if (isMulti) {
+		document.querySelector('.dashboard--p1').classList.add('dashboard--split-left');
+		document.querySelector('.dashboard--p2').style.display = 'flex';
+		document.querySelector('.dashboard--p2').classList.add('dashboard--split-right');
+	}
 
 	const gameScript = document.createElement('script');
-	gameScript.src = 'game.js';
+	gameScript.src = isMulti ? 'multiplayer.js' : 'game.js';
 	document.body.appendChild(gameScript);
 </script>
 </body>

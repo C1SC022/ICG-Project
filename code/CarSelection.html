@@ -56,12 +56,20 @@
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
       height: 100vh;
+      transition: grid-template-columns 0.5s ease;
+    }
+
+    .split--multi {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
     }
 
     .panel {
       position: relative;
-      padding: 1.7rem;
+      padding: 1.5rem;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
     .panel::before {
@@ -72,19 +80,8 @@
       pointer-events: none;
     }
 
-    .left {
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .right {
-      border-left: 1px solid rgba(255, 255, 255, 0.04);
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+    .panel.left { border-right: 1px solid rgba(255, 255, 255, 0.05); }
+    .panel.right { border-left: 1px solid rgba(255, 255, 255, 0.04); }
 
     .eyebrow {
       margin: 0;
@@ -106,13 +103,13 @@
     }
 
     h1 {
-      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      font-size: clamp(1.4rem, 2.5vw, 2.2rem);
       color: var(--pink);
       text-shadow: 0 0 12px rgba(255, 45, 149, 0.2), 0 10px 28px rgba(0, 0, 0, 0.6);
     }
 
     h2 {
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       color: var(--cyan);
       text-shadow: 0 0 12px rgba(0, 230, 217, 0.18), 0 10px 24px rgba(0, 0, 0, 0.5);
     }
@@ -121,6 +118,7 @@
       margin: 0;
       max-width: 58ch;
       color: var(--muted);
+      font-size: 0.9rem;
       line-height: 1.45;
       position: relative;
       z-index: 1;
@@ -130,57 +128,33 @@
       position: relative;
       flex: 1;
       min-height: 0;
-      border-radius: 24px;
+      border-radius: 20px;
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 20px 50px rgba(0, 0, 0, 0.35);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 15px 40px rgba(0, 0, 0, 0.3);
       overflow: hidden;
     }
 
-    #WebGL-output {
+    .webgl-output {
       position: absolute;
       inset: 0;
     }
 
-    .arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3.25rem;
-      height: 3.25rem;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(0, 0, 0, 0.52);
-      color: var(--text);
-      font-size: 1.7rem;
-      cursor: pointer;
-      z-index: 3;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
-    }
-
-    .arrow:hover {
-      border-color: rgba(0, 230, 217, 0.42);
-      box-shadow: 0 10px 28px rgba(0, 230, 217, 0.08);
-    }
-
-    .arrow.left { left: 1rem; }
-    .arrow.right { right: 1rem; }
-
     .car-chip {
       position: absolute;
       left: 50%;
-      bottom: 4.3rem;
+      bottom: 4rem;
       transform: translateX(-50%);
       z-index: 3;
-      padding: 0.45rem 0.8rem;
+      padding: 0.35rem 0.7rem;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(0, 0, 0, 0.42);
+      background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(8px);
       font-family: Orbitron, sans-serif;
       letter-spacing: 0.06em;
       color: var(--cyan);
+      white-space: nowrap;
     }
 
     .viewer-actions {
@@ -194,48 +168,41 @@
     }
 
     .select-btn {
-      border: 1px solid rgba(0, 230, 217, 0.35);
-      background: linear-gradient(180deg, rgba(0, 230, 217, 0.26), rgba(0, 190, 185, 0.12));
-      color: #dffefd;
+      border: 1px solid rgba(0, 230, 217, 0.4);
+      background: linear-gradient(180deg, rgba(0, 230, 217, 0.3), rgba(0, 190, 185, 0.15));
+      color: #fff;
       font-family: Orbitron, sans-serif;
+      font-size: 0.8rem;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       border-radius: 999px;
-      padding: 0.5rem 1rem;
+      padding: 0.5rem 1.2rem;
       cursor: pointer;
-      box-shadow: 0 8px 22px rgba(0, 230, 217, 0.16);
-      transition: transform 0.12s ease, filter 0.12s ease;
+      box-shadow: 0 8px 22px rgba(0, 230, 217, 0.2);
+      transition: all 0.2s ease;
     }
 
     .select-btn:hover {
-      filter: brightness(1.08);
-      transform: translateY(-1px);
+      filter: brightness(1.2);
+      transform: translateY(-2px);
     }
-
-    .arrow:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    .note {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.92rem;
-      position: relative;
-      z-index: 1;
+    
+    .select-btn.selected {
+        background: var(--pink);
+        border-color: var(--pink);
+        box-shadow: 0 0 15px var(--pink);
     }
 
     .stats {
       display: grid;
-      gap: 0.75rem;
+      gap: 0.6rem;
       position: relative;
       z-index: 1;
     }
 
     .stat-card {
-      padding: 0.9rem 1rem;
-      border-radius: 18px;
+      padding: 0.7rem 0.9rem;
+      border-radius: 14px;
       border: 1px solid var(--line);
       background: var(--panel);
     }
@@ -243,25 +210,26 @@
     .stat-top {
       display: flex;
       justify-content: space-between;
-      gap: 0.75rem;
+      gap: 0.5rem;
       align-items: baseline;
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.35rem;
     }
 
     .stat-label {
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      font-size: 0.8rem;
-      color: rgba(232, 238, 246, 0.66);
+      font-size: 0.7rem;
+      color: rgba(232, 238, 246, 0.6);
     }
 
     .stat-value {
       font-family: Orbitron, sans-serif;
+      font-size: 0.8rem;
       color: var(--text);
     }
 
     .bar {
-      height: 0.72rem;
+      height: 0.5rem;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.08);
       overflow: hidden;
@@ -272,148 +240,161 @@
       height: 100%;
       border-radius: 999px;
       background: linear-gradient(90deg, var(--pink), var(--cyan));
-      box-shadow: 0 0 12px rgba(0, 230, 217, 0.15);
+      box-shadow: 0 0 8px rgba(0, 230, 217, 0.2);
     }
 
-    @media (max-width: 960px) {
-      body { overflow: auto; }
-      .split {
-        grid-template-columns: 1fr;
-        min-height: 100vh;
-        height: auto;
-      }
-      .panel { min-height: 100vh; }
-      .viewer { min-height: 30rem; }
+    /* Multiplayer Split Styling */
+    .p2-mirror {
+        transform: scaleX(-1);
     }
+    .p2-mirror .car-chip, .p2-mirror .viewer-actions, .p2-mirror h1, .p2-mirror h2, .p2-mirror p {
+        transform: scaleX(-1);
+    }
+    .p2-mirror .car-chip { left: auto; right: 50%; transform: translateX(50%) scaleX(-1); }
+    .p2-mirror .viewer-actions { left: auto; right: 50%; transform: translateX(50%) scaleX(-1); }
 
-    @media (max-width: 640px) {
-      .panel { padding: 1.1rem; }
-      .arrow { width: 2.8rem; height: 2.8rem; }
-      .arrow.left { left: 0.75rem; }
-      .arrow.right { right: 0.75rem; }
+    .split--multi .panel {
+        padding: 1rem;
+    }
+    .split--multi h1, .split--multi h2 { font-size: 0.9rem; }
+    .split--multi .subtitle { font-size: 0.75rem; }
+    .split--multi .car-chip { font-size: 0.7rem; bottom: 3rem; }
+    
+    .ready-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+    }
+    .ready-overlay.active { opacity: 1; pointer-events: all; }
+    .ready-overlay h2 { font-size: 3rem; margin-bottom: 2rem; color: var(--cyan); }
+
+    @media (max-width: 1200px) {
+        .split--multi { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: auto; overflow: auto; }
+        .split--multi .panel { height: 50vh; }
     }
   </style>
 </head>
 <body>
-  <div class="split">
-    <section class="panel left">
-      <p class="eyebrow">Car Selection</p>
+  <div id="main-container" class="split">
+    <!-- Player 1 Car View -->
+    <section class="panel left" id="p1-viewer-panel">
+      <p class="eyebrow">Player 1</p>
       <h1>Choose your car</h1>
-      <p class="subtitle">Preview the car and its stats before hitting the track.</p>
+      <p class="subtitle">A/D to navigate, S to select</p>
 
       <div class="viewer">
-        <div id="WebGL-output"></div>
-        <div class="car-chip" id="car-name">car1</div>
+        <div id="p1-webgl" class="webgl-output"></div>
+        <div class="car-chip" id="p1-car-name">car1</div>
         <div class="viewer-actions">
-          <button class="select-btn" id="select-car" type="button">Select Car</button>
+          <button class="select-btn" id="p1-select" type="button">Select Car</button>
         </div>
       </div>
     </section>
 
-    <section class="panel right">
-      <p class="eyebrow">Relevant stats</p>
-      <h2 id="stats-title">car1</h2>
-      <p class="subtitle" id="stats-text"></p>
+    <!-- Player 1 Stats (or Single Player Stats) -->
+    <section class="panel right" id="p1-stats-panel">
+      <p class="eyebrow">Stats</p>
+      <h2 id="p1-stats-title">car1</h2>
+      <p class="subtitle" id="p1-stats-text"></p>
+      <div class="stats" id="p1-stats"></div>
+    </section>
 
-      <div class="stats" id="stats"></div>
+    <!-- Player 2 Stats (Hidden in Solo) -->
+    <section class="panel left hidden-solo" id="p2-stats-panel" style="display:none">
+      <p class="eyebrow">Stats</p>
+      <h2 id="p2-stats-title">car1</h2>
+      <p class="subtitle" id="p2-stats-text"></p>
+      <div class="stats" id="p2-stats"></div>
+    </section>
+
+    <!-- Player 2 Car View (Hidden in Solo) -->
+    <section class="panel right hidden-solo p2-mirror" id="p2-viewer-panel" style="display:none">
+      <p class="eyebrow">Player 2</p>
+      <h1>Choose your car</h1>
+      <p class="subtitle">Arrows to navigate, Enter to select</p>
+
+      <div class="viewer">
+        <div id="p2-webgl" class="webgl-output"></div>
+        <div class="car-chip" id="p2-car-name">car1</div>
+        <div class="viewer-actions">
+          <button class="select-btn" id="p2-select" type="button">Select Car</button>
+        </div>
+      </div>
     </section>
   </div>
+
+  <div id="ready-overlay" class="ready-overlay">
+      <h2>GET READY</h2>
+      <p>Starting race...</p>
+  </div>
+
   <script src="cars.js"></script>
-  <script src="game.js"></script>
 
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
 
     window.GLTFLoader = GLTFLoader;
+    window.ColladaLoader = ColladaLoader;
 
-    const blenderCarName = 'car1';
-    const carLabels = {
-      car1: 'Balanced runner'
+    const urlParams = new URLSearchParams(window.location.search);
+    const isMulti = urlParams.get('mode') === 'multi';
+    const carList = window.CarCatalog.getCarList();
+    
+    const players = {
+        p1: { index: 0, selected: false, name: carList[0], scene: null, camera: null, renderer: null, carGroup: null },
+        p2: { index: 0, selected: false, name: carList[0], scene: null, camera: null, renderer: null, carGroup: null }
     };
 
-    const el = {
-      viewer: document.getElementById('WebGL-output'),
-      select: document.getElementById('select-car'),
-      name: document.getElementById('car-name'),
-      title: document.getElementById('stats-title'),
-      text: document.getElementById('stats-text'),
-      stats: document.getElementById('stats')
-    };
-
-    let renderer, scene, camera, carGroup;
-    const carCache = {};
-
-    function getCarSpec(name) {
-      if (!window.CarCatalog || typeof window.CarCatalog.getCarSpec !== 'function') {
-        return null;
-      }
-      return window.CarCatalog.getCarSpec(name);
+    if (isMulti) {
+        document.getElementById('main-container').classList.add('split--multi');
+        document.querySelectorAll('.hidden-solo').forEach(el => el.style.display = 'flex');
+        document.getElementById('p1-viewer-panel').querySelector('h1').textContent = "P1: Select";
+        document.getElementById('p2-viewer-panel').querySelector('h1').textContent = "P2: Select";
     }
 
-    function estimateTopSpeed(spec) {
-      const gear = spec.vehicle.gears[spec.vehicle.gears.length - 1] || 1;
-      const wheelCirc = Math.PI * spec.vehicle.wheelDiameter;
-      return (spec.engine.rpmMax / (spec.vehicle.transmitionRatio * gear)) * wheelCirc * 60 / 1000;
-    }
+    function initPlayer(pId, containerId) {
+        const container = document.getElementById(containerId);
+        const p = players[pId];
+        
+        p.scene = new THREE.Scene();
+        p.scene.background = new THREE.Color(0x050810);
+        p.scene.fog = new THREE.Fog(0x050810, 14, 40);
 
-    function clamp(value, min, max) {
-      return Math.max(min, Math.min(max, value));
-    }
+        p.camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+        p.camera.position.set(0, 2.8, 8);
+        p.camera.lookAt(0, 0.9, 0);
 
-    function toFixedScale(value, max) {
-      return clamp((value / max) * 10, 0, 10);
-    }
+        p.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        p.renderer.setPixelRatio(window.devicePixelRatio);
+        p.renderer.setSize(container.clientWidth, container.clientHeight);
+        p.renderer.shadowMap.enabled = true;
+        container.appendChild(p.renderer.domElement);
 
-    function buildSingleCarStats(spec) {
-      const topSpeed = estimateTopSpeed(spec);
-      return [
-        ['Acceleration', toFixedScale(spec.engine.torqueMax / spec.vehicle.mass, 0.09)],
-        ['Top Speed', toFixedScale(topSpeed, 450)],
-        ['Braking', toFixedScale(spec.vehicle.brakeTorqueMax / spec.vehicle.mass, 0.35)],
-        ['Grip', toFixedScale(1 / spec.vehicle.cx, 5)],
-        ['RPM Max', toFixedScale(spec.engine.rpmMax, 10000)]
-      ];
-    }
+        p.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const key = new THREE.DirectionalLight(0xffffff, 1.1);
+        key.position.set(5, 9, 6);
+        p.scene.add(key);
 
-    function saveSelectedCar(name) {
-      if (window.CarCatalog && typeof window.CarCatalog.setSelectedCar === 'function') {
-        window.CarCatalog.setSelectedCar(name);
-        return;
-      }
-      try {
-        window.localStorage.setItem('dragRace.selectedCar', name);
-      } catch (err) {
-        // Ignore local storage errors.
-      }
-    }
+        const fill = new THREE.DirectionalLight(0x00e6d9, 0.45);
+        fill.position.set(-6, 2, -4);
+        p.scene.add(fill);
 
-    function makeCar(name) {
-      const spec = getCarSpec(name);
-      if (!spec) return null;
-      if (window.CarCatalog && typeof window.CarCatalog.createCarMesh === 'function') {
-        return window.CarCatalog.createCarMesh(THREE, name, spec, {
-          mode: 'preview',
-          onModelLoaded: () => {
-            carCache[name] = null;
-            if (blenderCarName === name) {
-              setCar(name);
-            }
-          }
-        });
-      }
-
-      const group = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.55, 4.2), new THREE.MeshStandardMaterial({ color: 0xff3b2f }));
-      body.position.y = 0.65;
-      group.add(body);
-      group.userData = { name };
-      return group;
+        p.scene.add(createPlatform());
+        updateCarUI(pId);
     }
 
     function createPlatform() {
       const platform = new THREE.Group();
-
       const base = new THREE.Mesh(
         new THREE.CylinderGeometry(4.2, 4.4, 0.35, 64),
         new THREE.MeshStandardMaterial({ color: 0x06070b, roughness: 0.95, metalness: 0.1 })
@@ -428,110 +409,142 @@
       top.position.y = 0.02;
       platform.add(top);
 
-      const glow = new THREE.Mesh(
-        new THREE.CylinderGeometry(4.4, 4.4, 0.02, 64),
-        new THREE.MeshStandardMaterial({ color: 0x00e6d9, emissive: 0x00e6d9, emissiveIntensity: 0.9, transparent: true, opacity: 0.25 })
-      );
-      glow.position.y = -0.12;
-      platform.add(glow);
-
       return platform;
     }
 
-    function initScene() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x050810);
-      scene.fog = new THREE.Fog(0x050810, 14, 40);
+    function updateCarUI(pId) {
+        const p = players[pId];
+        const carName = carList[p.index];
+        p.name = carName;
+        const spec = window.CarCatalog.getCarSpec(carName);
+        
+        document.getElementById(`${pId}-car-name`).textContent = carName.toUpperCase();
+        document.getElementById(`${pId}-stats-title`).textContent = carName.toUpperCase();
+        
+        const metrics = window.CarCatalog.getMetrics(spec);
+        const statsEl = document.getElementById(`${pId}-stats`);
+        const statsData = [
+            ['Acceleration', (metrics.acceleration / 0.09) * 10],
+            ['Top Speed', (metrics.speed / 450) * 10],
+            ['Braking', (metrics.braking / 0.35) * 10],
+            ['Grip', (metrics.grip / 5) * 10]
+        ];
 
-      camera = new THREE.PerspectiveCamera(50, el.viewer.clientWidth / el.viewer.clientHeight, 0.1, 100);
-      camera.position.set(0, 2.8, 8);
-      camera.lookAt(0, 0.9, 0);
+        statsEl.innerHTML = statsData.map(([label, val]) => `
+            <div class="stat-card">
+              <div class="stat-top">
+                <span class="stat-label">${label}</span>
+                <span class="stat-value">${Math.min(10, val).toFixed(1)} / 10</span>
+              </div>
+              <div class="bar"><span style="width:${Math.min(100, val * 10)}%;"></span></div>
+            </div>
+        `).join('');
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.setSize(el.viewer.clientWidth, el.viewer.clientHeight);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      el.viewer.appendChild(renderer.domElement);
+        document.getElementById(`${pId}-stats-text`).textContent = `${spec.vehicle.mass} kg · ${spec.engine.rpmMax} RPM`;
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-
-      const key = new THREE.DirectionalLight(0xffffff, 1.1);
-      key.position.set(5, 9, 6);
-      key.castShadow = true;
-      scene.add(key);
-
-      const fill = new THREE.DirectionalLight(0x00e6d9, 0.45);
-      fill.position.set(-6, 2, -4);
-      scene.add(fill);
-
-      scene.add(createPlatform());
-
-      window.addEventListener('resize', onResize);
+        // Load 3D model
+        if (p.carGroup) p.scene.remove(p.carGroup);
+        const mesh = window.CarCatalog.createCarMesh(THREE, carName, spec, {
+            mode: 'preview',
+            onModelLoaded: () => {
+                if (p.name === carName) updateCarUI(pId);
+            }
+        });
+        if (mesh) {
+            mesh.scale.multiplyScalar(2.2);
+            p.scene.add(mesh);
+            p.carGroup = mesh;
+        }
     }
 
-    function onResize() {
-      if (!renderer || !camera) return;
-      camera.aspect = el.viewer.clientWidth / el.viewer.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(el.viewer.clientWidth, el.viewer.clientHeight);
+    function handleSelection(pId) {
+        const p = players[pId];
+        p.selected = !p.selected;
+        const btn = document.getElementById(`${pId}-select`);
+        if (p.selected) {
+            btn.textContent = "READY";
+            btn.classList.add('selected');
+        } else {
+            btn.textContent = "Select Car";
+            btn.classList.remove('selected');
+        }
+        checkStart();
     }
 
-    function setCar(name) {
-      const spec = getCarSpec(name);
-      if (!spec) return;
-
-      if (carGroup) scene.remove(carGroup);
-      if (!carCache[name]) carCache[name] = makeCar(name);
-      carGroup = carCache[name];
-      if (carGroup) {
-        carGroup.scale.multiplyScalar(2.2);
-        scene.add(carGroup);
-        carGroup.rotation.set(0, -0.3, 0);
-      }
-
-      saveSelectedCar(name);
-
-      el.name.textContent = name;
-      el.title.textContent = `${name.toUpperCase()} · ${carLabels[name] || 'Blender Model'}`;
-      el.textContent = '';
-
-      const items = buildSingleCarStats(spec);
-
-      el.stats.innerHTML = items.map(([label, value]) => `
-        <div class="stat-card">
-          <div class="stat-top">
-            <span class="stat-label">${label}</span>
-            <span class="stat-value">${value.toFixed(1)} / 10</span>
-          </div>
-          <div class="bar"><span style="width:${value * 10}%;"></span></div>
-        </div>
-      `).join('');
-
-      el.text.textContent = `${spec.vehicle.mass} kg · ${spec.engine.rpmMax} RPM · ${spec.vehicle.gears.length - 1} gears`;
+    function checkStart() {
+        const p1Ready = players.p1.selected;
+        const p2Ready = isMulti ? players.p2.selected : true;
+        
+        if (p1Ready && p2Ready) {
+            document.getElementById('ready-overlay').classList.add('active');
+            setTimeout(() => {
+                const params = new URLSearchParams();
+                if (isMulti) params.set('mode', 'multi');
+                params.set('p1', players.p1.name);
+                if (isMulti) params.set('p2', players.p2.name);
+                window.location.href = `game.html?${params.toString()}`;
+            }, 1500);
+        }
     }
+
+    initPlayer('p1', 'p1-webgl');
+    if (isMulti) initPlayer('p2', 'p2-webgl');
+
+    window.addEventListener('keydown', (e) => {
+        // P1 Controls: A/D
+        if (!players.p1.selected) {
+            if (e.key.toLowerCase() === 'a') {
+                players.p1.index = (players.p1.index - 1 + carList.length) % carList.length;
+                updateCarUI('p1');
+            } else if (e.key.toLowerCase() === 'd') {
+                players.p1.index = (players.p1.index + 1) % carList.length;
+                updateCarUI('p1');
+            }
+        }
+        if (e.key.toLowerCase() === 's' || e.key === ' ') {
+            handleSelection('p1');
+        }
+
+        // P2 Controls: Arrows
+        if (isMulti && !players.p2.selected) {
+            if (e.key === 'ArrowLeft') {
+                players.p2.index = (players.p2.index - 1 + carList.length) % carList.length;
+                updateCarUI('p2');
+            } else if (e.key === 'ArrowRight') {
+                players.p2.index = (players.p2.index + 1) % carList.length;
+                updateCarUI('p2');
+            }
+            if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                handleSelection('p2');
+            }
+        }
+    });
+
+    document.getElementById('p1-select').addEventListener('click', () => handleSelection('p1'));
+    if (isMulti) document.getElementById('p2-select').addEventListener('click', () => handleSelection('p2'));
 
     function animate() {
-      requestAnimationFrame(animate);
-      if (carGroup) carGroup.rotation.y += 0.0025;
-      renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+        Object.values(players).forEach(p => {
+            if (p.renderer && p.scene && p.camera) {
+                if (p.carGroup) p.carGroup.rotation.y += 0.005;
+                p.renderer.render(p.scene, p.camera);
+            }
+        });
     }
+    animate();
 
-    function init() {
-      initScene();
-      el.select.addEventListener('click', () => {
-        saveSelectedCar(blenderCarName);
-        window.location.href = 'game.html';
-      });
-      setCar(blenderCarName);
-      animate();
-    }
+    window.addEventListener('resize', () => {
+        Object.values(players).forEach(p => {
+            if (p.renderer && p.camera) {
+                const container = p.renderer.domElement.parentElement;
+                p.camera.aspect = container.clientWidth / container.clientHeight;
+                p.camera.updateProjectionMatrix();
+                p.renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+    });
 
-    if (document.readyState === 'loading') {
-      window.addEventListener('load', init, { once: true });
-    } else {
-      init();
-    }
   </script>
 </body>
 </html>

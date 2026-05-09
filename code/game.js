@@ -2,14 +2,8 @@ console.log('[game.js] Loaded. THREE available:', typeof THREE !== 'undefined');
 
 let motorSamplePath = 'https://freesound.org/data/previews/127/127980_2335231-lq.ogg';
 
-const CAR_SPECS = (window.CarCatalog && window.CarCatalog.specs) ? window.CarCatalog.specs : {};
-if (!window.CarCatalog) {
-	window.CarCatalog = {
-		specs: CAR_SPECS,
-		getCarList: function() { return Object.keys(CAR_SPECS); },
-		getCarSpec: function(name) { return CAR_SPECS[name] || null; }
-	};
-}
+// Car specifications will be retrieved during initialization
+let CAR_SPECS = {};
 
 // METER
 
@@ -228,39 +222,33 @@ function initApp() {
 	document.onkeyup = keyUp;
 
 	function keyDown(e) {
-
 		e = e || window.event;
+		const key = e.key.toLowerCase();
 
-		if (e.keyCode == '38') { 			// up arrow
+		if (key === 'w' || e.keyCode == '38') { 			// W or up arrow
 			isAccelerating = true;
 		}
-		else if (e.keyCode == '40') { // down arrow
+		else if (key === 's' || e.keyCode == '40') { // S or down arrow
 			isBraking = true;
 		}
-		else if (e.keyCode == '37') { // left arrow
+		else if (key === 'a' || e.keyCode == '37') { // A or left arrow
+			gearDown();
 		}
-		else if (e.keyCode == '39') { // right arrow
+		else if (key === 'd' || e.keyCode == '39') { // D or right arrow
+			gearUp();
 		}
-
 	}	
 
 	function keyUp(e) {
-
 		e = e || window.event;
+		const key = e.key.toLowerCase();
 
-		if (e.keyCode == '38') {			// up arrow
+		if (key === 'w' || e.keyCode == '38') {			// W or up arrow
 			isAccelerating = false;
 		}
-		else if (e.keyCode == '40') { // down arrow
+		else if (key === 's' || e.keyCode == '40') { // S or down arrow
 			isBraking = false;
 		}
-		else if (e.keyCode == '37') { // left arrow
-			gearDown();
-		}
-		else if (e.keyCode == '39') { // right arrow
-			gearUp();
-		}
-
 	}	
 	
 	function gearUp() {
@@ -288,10 +276,10 @@ function initApp() {
 	}
 
 	
-	const SINGLE_CAR_NAME = 'car1';
-	const cars = {
-		car1: CAR_SPECS.car1
-	};
+	const urlParams = new URLSearchParams(window.location.search);
+	CAR_SPECS = (window.CarCatalog && window.CarCatalog.specs) ? window.CarCatalog.specs : {};
+	const SINGLE_CAR_NAME = urlParams.get('p1') || 'car1';
+	const cars = CAR_SPECS;
 	let currentCarName = SINGLE_CAR_NAME;
 	let currentCar = cars[currentCarName];
 
@@ -546,7 +534,7 @@ function initApp() {
 				const lightPos = streetLight.worldToLocal(worldCenter.clone());
 
 				// Keep each post light local to reduce per-frame light cost.
-				const lampLight = new THREE.PointLight(0xffe8b0, 3.2, 28);
+				const lampLight = new THREE.PointLight(0xffe8b0, 3.5, 65);
 				lampLight.castShadow = false;
 				lampLight.position.copy(lightPos);
 				lampLight.position.y += 0.08;
@@ -591,11 +579,17 @@ function initApp() {
 	function buildRoadAndLights() {
 		if (!scene || typeof THREE === 'undefined') return;
 
-		const roadMat = new THREE.MeshPhongMaterial({
-			color: 0x1b1c20,
-			specular: 0x2f4f8c,
-			shininess: 42,
-			reflectivity: 0.35
+		const texLoader = new THREE.TextureLoader();
+		const asphaltTex = texLoader.load('../textures/asphalt.jpg');
+		asphaltTex.wrapS = asphaltTex.wrapT = THREE.RepeatWrapping;
+		asphaltTex.repeat.set(2, 4);
+
+		const roadMat = new THREE.MeshPhongMaterial({ 
+			color: 0x444444, 
+			map: asphaltTex,
+			specular: 0x222222, 
+			shininess: 10,
+			reflectivity: 0.1 
 		});
 		const shoulderMat = new THREE.MeshLambertMaterial({ color: 0x27292e });
 		const sideLineMat = new THREE.MeshLambertMaterial({ color: 0xf7f7f7 });
@@ -1045,6 +1039,22 @@ function initApp() {
 		if (gearMeter) gearMeter.innerHTML = (gear === 0) ? 'N' : gear;
 		updateShiftWindowUI();
 
+	// Add visual finish line
+	const finishLineGeom = new THREE.PlaneGeometry(16.4, 0.4);
+	const finishLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
+	const finishLine = new THREE.Mesh(finishLineGeom, finishLineMat);
+	finishLine.rotation.x = Math.PI / 2;
+	// At CAR_BASE_POS.z - 400 because travelZ moves in negative Z
+	finishLine.position.set(0, -0.485, CAR_BASE_POS.z - 400);
+	scene.add(finishLine);
+	
+	// Add a taller glowing line for visibility
+	const finishLineGlowGeom = new THREE.PlaneGeometry(16.4, 0.25);
+	const finishLineGlowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
+	const finishLineGlow = new THREE.Mesh(finishLineGlowGeom, finishLineGlowMat);
+	finishLineGlow.position.set(0, -0.3, CAR_BASE_POS.z - 400);
+	scene.add(finishLineGlow);
+
 	console.log('[Car] Single car integration initialized:', SINGLE_CAR_NAME);
 	
 	function kmh2ms(speed) {	// Km/h to m/s
@@ -1369,7 +1379,7 @@ function initApp() {
 
 		syncCarWithCamera(delta);
 
-		if (raceState === 'racing' && Math.abs(playerTravelZ) >= RACE_FINISH_DISTANCE_METERS) {
+		if (raceState === 'racing' && (Math.abs(playerTravelZ) + 2.25) >= RACE_FINISH_DISTANCE_METERS) {
 			finishRace();
 		}
 
