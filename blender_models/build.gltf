@@ -213,22 +213,13 @@
 		},
 		{
 			"doubleSided":true,
-			"emissiveFactor":[
-				1,
-				1,
-				1
-			],
-			"emissiveTexture":{
-				"index":2
-			},
 			"name":"Material.001",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0,
-					0,
-					0,
-					1
-				]
+				"baseColorTexture":{
+					"index":2
+				},
+				"metallicFactor":0,
+				"roughnessFactor":0.5
 			}
 		},
 		{
@@ -629,8 +620,8 @@
 		},
 		{
 			"mimeType":"image/jpeg",
-			"name":"brick-texture-2106361449",
-			"uri":"brick-texture-2106361449.jpg"
+			"name":"brick-texture-2106361449.jpg",
+			"uri":"brick-texture-2106361449.jpg.jpg"
 		},
 		{
 			"mimeType":"image/jpeg",
