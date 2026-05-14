@@ -302,7 +302,21 @@ function initMultiApp() {
     let p1 = new Player('p1', p1CarName, '.meter--rpm.meter--p1', '.meter--gear.meter--p1');
     let p2 = new Player('p2', p2CarName, '.meter--rpm.meter--p2', '.meter--gear.meter--p2');
 
-    let raceState = 'countdown';
+    let raceState = 'loading';
+    let assetsLoaded = {
+        p1Car: false,
+        p2Car: false
+    };
+
+    function checkAllAssetsLoaded() {
+        if (assetsLoaded.p1Car && assetsLoaded.p2Car) {
+            if (raceState === 'loading') {
+                raceState = 'countdown';
+                document.getElementById('raceCountdown').classList.remove('hidden');
+            }
+        }
+    }
+
     let countdownLeft = RACE_COUNTDOWN_SECONDS;
     let raceElapsedTime = 0;
     
@@ -311,12 +325,16 @@ function initMultiApp() {
     const CAR_BASE_POS_Z = -122;
     const STREAM_DIRECTION = -1;
     const STREAM_SEGMENT_LENGTH = 30;
-    const STREAM_SEGMENT_COUNT = 7;
+    const STREAM_SEGMENT_COUNT = 3;
+    const STREAM_STREET_LIGHT_PAIRS = 3;
+    const STREAM_DECORATION_COUNT = 16;
+    const STREAM_START_Z = -100;
+    const STREAM_RECYCLE_BEHIND_DISTANCE = 45;
     const STREET_LIGHT_STEP = 20;
-    const STREAM_START_Z = -186;
+    const DECORATION_STEP = 8;
     let streamedRoadSegments = [];
     let streamedStreetLightPairs = [];
-    let streetLightTemplate = null;
+    let streamedDecorations = [];
     let policeLightRig, policeBlueLight, policeRedLight, policeBlueTarget, policeRedTarget, policeLightTime = 0;
 
     function initThree() {
@@ -376,12 +394,16 @@ function initMultiApp() {
                 if (p1.mesh) {
                     applySimScale(p1.mesh);
                     scene.add(p1.mesh);
+                    assetsLoaded.p1Car = true;
+                    checkAllAssetsLoaded();
                 }
             }};
             p1.mesh = window.CarCatalog.createCarMesh(THREE, p1.carName, p1.spec, options1);
             if (p1.mesh) {
                 applySimScale(p1.mesh);
                 scene.add(p1.mesh);
+                assetsLoaded.p1Car = true;
+                checkAllAssetsLoaded();
             }
 
             const options2 = { mode: 'sim', onModelLoaded: () => {
@@ -390,12 +412,16 @@ function initMultiApp() {
                 if (p2.mesh) {
                     applySimScale(p2.mesh);
                     scene.add(p2.mesh);
+                    assetsLoaded.p2Car = true;
+                    checkAllAssetsLoaded();
                 }
             }};
             p2.mesh = window.CarCatalog.createCarMesh(THREE, p2.carName, p2.spec, options2);
             if (p2.mesh) {
                 applySimScale(p2.mesh);
                 scene.add(p2.mesh);
+                assetsLoaded.p2Car = true;
+                checkAllAssetsLoaded();
             }
         }
     }
@@ -409,9 +435,9 @@ function initMultiApp() {
 
         policeLightRig = new THREE.Group();
         policeLightRig.position.set(CAMERA_BASE_POS.x - 18, CAMERA_BASE_POS.y + 1.2, CAMERA_BASE_POS.z + 6);
-        policeBlueLight = new THREE.SpotLight(0x3d79ff, 2.6, 900, Math.PI/7, 0.5, 0.2);
+        policeBlueLight = new THREE.SpotLight(0x3d79ff, 2.6, 1000, Math.PI/6, 0.5, 0.2);
         policeBlueLight.position.set(-3, 1.2, -6);
-        policeRedLight = new THREE.SpotLight(0xff3344, 2.6, 900, Math.PI/7, 0.5, 0.2);
+        policeRedLight = new THREE.SpotLight(0xff3344, 2.6, 1000, Math.PI/6, 0.5, 0.2);
         policeRedLight.position.set(-3.0, 1.6, -6);
         policeBlueTarget = new THREE.Object3D(); policeRedTarget = new THREE.Object3D();
         scene.add(policeBlueTarget); scene.add(policeRedTarget);
@@ -420,22 +446,109 @@ function initMultiApp() {
         scene.add(policeLightRig);
     }
 
+    function addStreetLightsFromModel() {
+        const template = window.AssetManager.get('streetLight');
+        if (!scene || !template) return;
+
+        function attachLampLight(streetLight) {
+            let lampMesh = null;
+            streetLight.traverse(node => {
+                if (lampMesh || !node.isMesh || !node.material) return;
+                const mat = node.material;
+                const hasEmissive = mat.emissive && (mat.emissive.r > 0 || mat.emissive.g > 0 || mat.emissive.b > 0);
+                if (hasEmissive || mat.name === 'Material.002') lampMesh = node;
+            });
+            if (!lampMesh) return;
+            streetLight.updateMatrixWorld(true);
+            lampMesh.geometry.computeBoundingBox();
+            const localCenter = lampMesh.geometry.boundingBox.getCenter(new THREE.Vector3());
+            const worldCenter = lampMesh.localToWorld(localCenter.clone());
+            const lightPos = streetLight.worldToLocal(worldCenter.clone());
+            const lampLight = new THREE.SpotLight(0xffe8b0, 20, 60, Math.PI / 3, 0.5, 1);
+            lampLight.position.copy(lightPos); 
+            lampLight.position.y -= 0.4; // Move below the lamp housing
+            
+            // Point the spotlight downwards
+            lampLight.target.position.set(lampLight.position.x, lampLight.position.y - 10, lampLight.position.z);
+            streetLight.add(lampLight.target);
+
+            lampLight.userData = { isLampLight: true };
+            lampLight.visible = false;
+            streetLight.add(lampLight);
+        }
+
+        for (let i = 0; i < STREAM_STREET_LIGHT_PAIRS; i++) {
+            const pair = new THREE.Group();
+            pair.position.z = STREAM_START_Z + i * STREET_LIGHT_STEP * (-STREAM_DIRECTION);
+            const l = template.clone(true); l.position.set(-5.1, -0.5, 0); l.rotation.y = Math.PI*1.5; l.scale.setScalar(0.5);
+            const r = template.clone(true); r.position.set(5.1, -0.5, 0); r.rotation.y = Math.PI/2; r.scale.setScalar(0.5);
+            attachLampLight(l); attachLampLight(r);
+            pair.add(l); pair.add(r);
+            scene.add(pair); streamedStreetLightPairs.push(pair);
+        }
+    }
+
+    function addDecorationsFromModels() {
+        if (!scene) return;
+        const propNames = ['caixas', 'hidrante', 'lixo', 'lixo2'];
+        const buildingNames = ['build', 'build2'];
+        const side = -1;
+
+        for (let i = 0; i < STREAM_DECORATION_COUNT; i++) {
+            const group = new THREE.Group();
+            group.position.z = STREAM_START_Z + i * DECORATION_STEP * (-STREAM_DIRECTION);
+            group.position.y = -0.5;
+
+            const bName = buildingNames[i % buildingNames.length];
+            const house = window.AssetManager.get(bName);
+            if (house) {
+                house.scale.setScalar(1.2 + Math.random() * 0.5);
+                house.position.x = side * 12.5;
+                group.add(house);
+            }
+
+            const usedPositions = [];
+            const numProps = 3 + Math.floor(Math.random() * 4);
+            for (let j = 0; j < numProps; j++) {
+                const pName = propNames[Math.floor(Math.random() * propNames.length)];
+                const prop = window.AssetManager.get(pName);
+                if (prop) {
+                    prop.scale.setScalar(0.6);
+                    prop.rotation.y = Math.random() * Math.PI * 2;
+                    let attempts = 0, placed = false;
+                    while (attempts < 15 && !placed) {
+                        const px = side * (8.5 + Math.random() * 2.0);
+                        const pz = (Math.random() - 0.5) * 7.5;
+                        const tooClose = usedPositions.some(pos => Math.sqrt((pos.x - px)**2 + (pos.z - pz)**2) < 1.8);
+                        if (!tooClose) {
+                            prop.position.set(px, 0, pz); group.add(prop);
+                            usedPositions.push({x: px, z: pz}); placed = true;
+                        }
+                        attempts++;
+                    }
+                }
+            }
+            scene.add(group); streamedDecorations.push(group);
+        }
+    }
+
     function buildRoadAndLights() {
         const texLoader = new THREE.TextureLoader();
         const asphaltTex = texLoader.load('../textures/asphalt.jpg');
         asphaltTex.wrapS = asphaltTex.wrapT = THREE.RepeatWrapping;
         asphaltTex.repeat.set(2, 4);
 
-        const roadMat = new THREE.MeshPhongMaterial({ 
-            color: 0x444444, 
-            map: asphaltTex,
-            specular: 0x222222, 
-            shininess: 10,
-            reflectivity: 0.1 
-        });
+        const sidewalkTex = texLoader.load('../textures/139-stone-block-wall-pbr-texture-seamless-hr-1488102640.jpg');
+        if (sidewalkTex) {
+            sidewalkTex.wrapS = sidewalkTex.wrapT = THREE.RepeatWrapping;
+            sidewalkTex.repeat.set(1, 10);
+        }
+
+        const roadMat = new THREE.MeshPhongMaterial({ color: 0x444444, map: asphaltTex, specular: 0x222222, shininess: 10, reflectivity: 0.1 });
         const shoulderMat = new THREE.MeshLambertMaterial({ color: 0x27292e });
         const sideLineMat = new THREE.MeshLambertMaterial({ color: 0xf7f7f7 });
         const centerLineMat = new THREE.MeshLambertMaterial({ color: 0xffd54a });
+        const sidewalkMat = new THREE.MeshLambertMaterial({ color: sidewalkTex ? 0xffffff : 0x888888, map: sidewalkTex });
 
         for (let i = 0; i < STREAM_SEGMENT_COUNT; i++) {
             const segment = new THREE.Group();
@@ -447,6 +560,11 @@ function initMultiApp() {
                 const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(4, STREAM_SEGMENT_LENGTH), shoulderMat);
                 shoulder.rotation.x = -Math.PI / 2; shoulder.position.set(x, -0.495, STREAM_SEGMENT_LENGTH/2); shoulder.receiveShadow = true;
                 segment.add(shoulder);
+            });
+            [-10.2, 10.2].forEach(x => {
+                const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(4, STREAM_SEGMENT_LENGTH), sidewalkMat);
+                sidewalk.rotation.x = -Math.PI / 2; sidewalk.position.set(x, -0.49, STREAM_SEGMENT_LENGTH/2); sidewalk.receiveShadow = true;
+                segment.add(sidewalk);
             });
             [-3.8, 3.8].forEach(x => {
                 const line = new THREE.Mesh(new THREE.PlaneGeometry(0.12, STREAM_SEGMENT_LENGTH), sideLineMat);
@@ -461,42 +579,8 @@ function initMultiApp() {
             scene.add(segment);
             streamedRoadSegments.push(segment);
         }
-
-        if (window.GLTFLoader) {
-            new window.GLTFLoader().load('../blender_models/StreetLight.gltf', (gltf) => {
-                streetLightTemplate = gltf.scene;
-                streetLightTemplate.traverse(node => { if(node.isMesh) { node.castShadow=true; node.receiveShadow=true; } });
-
-                function attachLampLight(streetLight) {
-                    let lampMesh = null;
-                    streetLight.traverse(node => {
-                        if (lampMesh || !node.isMesh || !node.material) return;
-                        const mat = node.material;
-                        const hasEmissive = mat.emissive && (mat.emissive.r > 0 || mat.emissive.g > 0 || mat.emissive.b > 0);
-                        if (hasEmissive || mat.name === 'Material.002') lampMesh = node;
-                    });
-                    if (!lampMesh) return;
-                    streetLight.updateMatrixWorld(true);
-                    lampMesh.geometry.computeBoundingBox();
-                    const localCenter = lampMesh.geometry.boundingBox.getCenter(new THREE.Vector3());
-                    const worldCenter = lampMesh.localToWorld(localCenter.clone());
-                    const lightPos = streetLight.worldToLocal(worldCenter.clone());
-                    const lampLight = new THREE.PointLight(0xffe8b0, 3.5, 65);
-                    lampLight.position.copy(lightPos); lampLight.position.y += 0.08;
-                    streetLight.add(lampLight);
-                }
-
-                for (let i = 0; i < 10; i++) {
-                    const pair = new THREE.Group();
-                    pair.position.z = STREAM_START_Z + i * STREET_LIGHT_STEP * (-STREAM_DIRECTION);
-                    const l = streetLightTemplate.clone(true); l.position.set(-5.1, -0.5, 0); l.rotation.y = Math.PI*1.5; l.scale.setScalar(0.5);
-                    const r = streetLightTemplate.clone(true); r.position.set(5.1, -0.5, 0); r.rotation.y = Math.PI/2; r.scale.setScalar(0.5);
-                    attachLampLight(l); attachLampLight(r);
-                    pair.add(l); pair.add(r);
-                    scene.add(pair); streamedStreetLightPairs.push(pair);
-                }
-            });
-        }
+        addStreetLightsFromModel();
+        addDecorationsFromModels();
     }
 
     function updatePhysics(p, delta) {
@@ -571,10 +655,10 @@ function initMultiApp() {
         }
     }
 
-    let lastTime = Date.now();
+    let lastTime = performance.now();
     function loop() {
         requestAnimationFrame(loop);
-        let now = Date.now(), delta = (now - lastTime) / 1000; lastTime = now;
+        let now = performance.now(), delta = (now - lastTime) / 1000; lastTime = now;
 
         if (raceState === 'countdown') {
             countdownLeft = Math.max(0, countdownLeft - delta);
@@ -601,9 +685,9 @@ function initMultiApp() {
         
         let targetFov = 60;
         if (gap < 45) {
-            targetFov = 60 + Math.min(gap * 0.85, 30);
+            targetFov = 60 + Math.min(gap * 0.7, 30);
         } else {
-            targetFov = 90; // Fixed max FOV when far apart
+            targetFov = 60; // Fixed max FOV when far apart
         }
         
         if (typeof camera.fov !== 'undefined') {
@@ -615,24 +699,61 @@ function initMultiApp() {
         
         camera.lookAt(-300, -60, 10 + leaderZ);
 
-        if (p1.mesh) { p1.mesh.position.set(2, -0.5, CAR_BASE_POS_Z + p1.travelZ); p1.mesh.rotation.y = Math.PI; }
-        if (p2.mesh) { p2.mesh.position.set(-2, -0.5, CAR_BASE_POS_Z + p2.travelZ); p2.mesh.rotation.y = Math.PI; }
+        if (p1.mesh) { 
+            p1.mesh.position.set(2, -0.5, CAR_BASE_POS_Z + p1.travelZ); 
+            p1.mesh.rotation.y = Math.PI; 
+            if (p1.mesh.userData.wheels && p1.spec) {
+                const radius = p1.spec.vehicle.wheelDiameter / 2;
+                const v_ms = p1.speed / 3.6;
+                const angularVelocity = v_ms / radius;
+                p1.mesh.userData.wheels.forEach(wheel => {
+                    wheel.rotation.x += angularVelocity * delta;
+                });
+            }
+        }
+        if (p2.mesh) { 
+            p2.mesh.position.set(-2, -0.5, CAR_BASE_POS_Z + p2.travelZ); 
+            p2.mesh.rotation.y = Math.PI; 
+            if (p2.mesh.userData.wheels && p2.spec) {
+                const radius = p2.spec.vehicle.wheelDiameter / 2;
+                const v_ms = p2.speed / 3.6;
+                const angularVelocity = v_ms / radius;
+                p2.mesh.userData.wheels.forEach(wheel => {
+                    wheel.rotation.x += angularVelocity * delta;
+                });
+            }
+        }
 
-        const recycleBehindZ = camera.position.z + 50;
-        [streamedRoadSegments, streamedStreetLightPairs].forEach(pool => {
+        const recycleBehindZ = camera.position.z + STREAM_RECYCLE_BEHIND_DISTANCE;
+        [streamedRoadSegments, streamedStreetLightPairs, streamedDecorations].forEach(pool => {
             if (!pool.length) return;
             let minZ = Infinity; pool.forEach(s => { if (s.position.z < minZ) minZ = s.position.z; });
-            pool.forEach(s => { if (s.position.z > recycleBehindZ) { s.position.z = minZ - (pool === streamedRoadSegments ? 30 : 20); minZ = s.position.z; } });
+            pool.forEach(s => { if (s.position.z > recycleBehindZ) { 
+                const step = (pool === streamedRoadSegments ? 30 : (pool === streamedStreetLightPairs ? 20 : DECORATION_STEP));
+                s.position.z = minZ - step; 
+                minZ = s.position.z; 
+            } });
         });
+
+        if (camera) {
+            const activeDistance = 150;
+            streamedStreetLightPairs.forEach(pair => {
+                const dist = Math.abs(pair.position.z - camera.position.z);
+                const isActive = dist < activeDistance;
+                pair.traverse(node => {
+                    if (node.userData.isLampLight) node.visible = isActive;
+                });
+            });
+        }
 
         policeLightTime += delta;
         const trailingZ = Math.max(p1.travelZ, p2.travelZ);
         const policeTargetZ = CAR_BASE_POS_Z + trailingZ;
-        // Positioned at y=1.5 and x=0 to match singleplayer's relative look (centered between tracks)
-        policeLightRig.position.set(0, 1.5, policeTargetZ + 28);
+        // Positioned further back (65 units instead of 28)
+        policeLightRig.position.set(0, 1.5, policeTargetZ + 65);
         policeBlueTarget.position.set(0, 0.7, policeTargetZ + 0.6);
         policeRedTarget.position.set(0, 0.7, policeTargetZ + 0.6);
-        const nearIntensity = 1.9 * (0.35 + 0.65 * Math.max(0, Math.sin(policeLightTime * 10.5)));
+        const nearIntensity = 5.5 * (0.35 + 0.65 * Math.max(0, Math.sin(policeLightTime * 10.5)));
         const bluePhase = (policeLightTime % 0.72) < 0.36;
         policeBlueLight.intensity = bluePhase ? nearIntensity : 0.03;
         policeRedLight.intensity = bluePhase ? 0.03 : nearIntensity;
@@ -654,7 +775,6 @@ function initMultiApp() {
 
     initThree();
     loop();
-    document.getElementById('raceCountdown').classList.remove('hidden');
 }
 
 initMultiApp();

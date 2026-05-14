@@ -92,9 +92,6 @@ let Meter = function Meter($elm, config) {
 		}
 	};
 	
-	let switchLabel = function(e) {
-		e.target.closest(".meter").classList.toggle('meter--big-label');
-	};
 	
 	let makeElement = function(parent, className, innerHtml, style) {
 
@@ -185,7 +182,7 @@ let Meter = function Meter($elm, config) {
 		transform: "translate3d(-50%, 0, 0) rotate(" + angle + "deg)"
 	});
 	
-	let $axle = makeElement($elm, "needle-axle");
+	makeElement($elm, "needle-axle");
 	makeElement($elm, "label label-value", "<div>" + config.labelFormat(config.value) + "</div>" + "<span>" + config.labelUnit + "</span>");
 	
 	$value = $elm.querySelector(".label-value div");
@@ -430,25 +427,23 @@ function initApp() {
 	// -1: world flows toward -Z (camera looks forward to +Z). 1: inverted direction.
 	const STREAM_DIRECTION = -1;
 	const STREAM_SEGMENT_LENGTH = 30;
-	const STREAM_SEGMENT_COUNT = 7;
-	const STREAM_STREET_LIGHT_PAIRS = 10;
+	const STREAM_SEGMENT_COUNT = 3;
+	const STREAM_STREET_LIGHT_PAIRS = 3;
 	const STREAM_SKIP_INITIAL_LIGHT_PAIRS = 0;
-	const STREAM_START_Z = -186;
-	const STREAM_RECYCLE_BEHIND_DISTANCE = 50;
+	const STREAM_DECORATION_COUNT = 16;
+	const STREAM_START_Z = -100;
+	const STREAM_RECYCLE_BEHIND_DISTANCE = 45;
 	const STREET_LIGHT_STEP = 20;
-	const REAL_LIGHT_STEP = 40;
+	const DECORATION_STEP = 8;
+	const REAL_LIGHT_STEP = 40; // kept for reference, unused
 	const CAMERA_BASE_POS = { x: 8, y: 2.5, z: -125 };
 	const CAR_BASE_POS = { x: 2, y: -0.5, z: -122 };
-	const CAR_CAMERA_OFFSET = { x: 0, y: -2.95, z: -0.8 };
-	let streetLightTemplate = null;
-	let streetLightLoadInProgress = false;
-	let streetLightQueuedCallbacks = [];
+
 	let streamedRoadSegments = [];
 	let streamedStreetLightPairs = [];
+	let streamedDecorations = [];
 
-	// camera look X (smooth target). When 0 => perpendicular to road.
-	let currentLookX = 0;
-	let targetLookX = 0;
+
 	let playerTravelZ = 0;
 	let moonLight = null;
 	let moonFillLight = null;
@@ -459,121 +454,145 @@ function initApp() {
 	let policeRedTarget = null;
 	let policeLightTime = 0;
 
-	function loadStreetLightTemplate(onReady) {
-		if (streetLightTemplate) {
-			onReady(streetLightTemplate);
-			return;
+	function addStreetLightsFromModel() {
+		const template = window.AssetManager.get('streetLight');
+		if (!scene || !template) return;
+
+		function attachLampLight(streetLight, withPointLight) {
+			if (!withPointLight) return;
+
+			let lampMesh = null;
+			streetLight.traverse(function (node) {
+				if (lampMesh || !node.isMesh || !node.material) return;
+
+				const mat = node.material;
+				const hasEmissive = mat.emissive && (mat.emissive.r > 0 || mat.emissive.g > 0 || mat.emissive.b > 0);
+				if (hasEmissive || mat.name === 'Material.002') {
+					lampMesh = node;
+				}
+			});
+
+			if (!lampMesh) return;
+
+			streetLight.updateMatrixWorld(true);
+			lampMesh.geometry.computeBoundingBox();
+			const localCenter = lampMesh.geometry.boundingBox.getCenter(new THREE.Vector3());
+			const worldCenter = lampMesh.localToWorld(localCenter.clone());
+			const lightPos = streetLight.worldToLocal(worldCenter.clone());
+
+			// Use SpotLight for a conical effect pointing downwards
+			const lampLight = new THREE.SpotLight(0xffe8b0, 20, 60, Math.PI / 3, 0.5, 1);
+			lampLight.castShadow = false;
+			lampLight.position.copy(lightPos);
+			lampLight.position.y -= 0.4; // Move below the lamp housing so light isn't blocked
+			
+			// Point the spotlight downwards
+			lampLight.target.position.set(lampLight.position.x, lampLight.position.y - 10, lampLight.position.z);
+			streetLight.add(lampLight.target);
+			
+			lampLight.userData = { isLampLight: true };
+			lampLight.visible = false; // Turned off initially for optimization
+			
+			streetLight.add(lampLight);
 		}
 
-		if (typeof window.GLTFLoader === 'undefined') {
-			console.warn('GLTFLoader is not available. StreetLight model was not loaded.');
-			return;
+		streamedStreetLightPairs.forEach(function (pair) {
+			scene.remove(pair);
+		});
+		streamedStreetLightPairs = [];
+
+		for (let i = 0; i < STREAM_STREET_LIGHT_PAIRS; i++) {
+			if (i < STREAM_SKIP_INITIAL_LIGHT_PAIRS) continue;
+
+			const pair = new THREE.Group();
+			pair.position.z = STREAM_START_Z + i * STREET_LIGHT_STEP * (-STREAM_DIRECTION);
+
+			const leftLight = template.clone(true);
+			leftLight.position.set(-5.1, -0.5, 0);
+			leftLight.rotation.y = Math.PI * 1.5;
+			leftLight.scale.setScalar(0.5);
+			attachLampLight(leftLight, true);
+			pair.add(leftLight);
+
+			const rightLight = template.clone(true);
+			rightLight.position.set(5.1, -0.5, 0);
+			rightLight.rotation.y = Math.PI / 2;
+			rightLight.scale.setScalar(0.5);
+			attachLampLight(rightLight, true);
+			pair.add(rightLight);
+
+			scene.add(pair);
+			streamedStreetLightPairs.push(pair);
 		}
-
-		streetLightQueuedCallbacks.push(onReady);
-
-		if (streetLightLoadInProgress) {
-			return;
-		}
-
-		streetLightLoadInProgress = true;
-		const loader = new window.GLTFLoader();
-		loader.load(
-			'../blender_models/StreetLight.gltf',
-			function (gltf) {
-				streetLightTemplate = gltf.scene;
-				streetLightTemplate.traverse(function (node) {
-					if (node.isMesh) {
-						node.castShadow = true;
-						node.receiveShadow = true;
-					}
-				});
-
-				const callbacks = streetLightQueuedCallbacks.slice();
-				streetLightQueuedCallbacks = [];
-				streetLightLoadInProgress = false;
-				callbacks.forEach(function (cb) { cb(streetLightTemplate); });
-			},
-			undefined,
-			function (error) {
-				streetLightLoadInProgress = false;
-				streetLightQueuedCallbacks = [];
-				console.error('Failed to load StreetLight.gltf', error);
-			}
-		);
 	}
 
-	function addStreetLightsFromModel() {
-		loadStreetLightTemplate(function (template) {
-			if (!scene || !template) return;
+	function addDecorationsFromModels() {
+		if (!scene) return;
+		
+		const propNames = ['caixas', 'hidrante', 'lixo', 'lixo2'];
+		const buildingNames = ['build', 'build2'];
 
-			function attachLampLight(streetLight, withPointLight) {
-				if (!withPointLight) {
-					return;
-				}
-
-				let lampMesh = null;
-				streetLight.traverse(function (node) {
-					if (lampMesh || !node.isMesh || !node.material) return;
-
-					const mat = node.material;
-					const hasEmissive = mat.emissive && (mat.emissive.r > 0 || mat.emissive.g > 0 || mat.emissive.b > 0);
-					if (hasEmissive || mat.name === 'Material.002') {
-						lampMesh = node;
-					}
-				});
-
-				if (!lampMesh) {
-					return;
-				}
-
-				streetLight.updateMatrixWorld(true);
-				lampMesh.geometry.computeBoundingBox();
-				const localCenter = lampMesh.geometry.boundingBox.getCenter(new THREE.Vector3());
-				const worldCenter = lampMesh.localToWorld(localCenter.clone());
-				const lightPos = streetLight.worldToLocal(worldCenter.clone());
-
-				// Keep each post light local to reduce per-frame light cost.
-				const lampLight = new THREE.PointLight(0xffe8b0, 3.5, 65);
-				lampLight.castShadow = false;
-				lampLight.position.copy(lightPos);
-				lampLight.position.y += 0.08;
-				streetLight.add(lampLight);
-			}
-
-			streamedStreetLightPairs.forEach(function (pair) {
-				scene.remove(pair);
-			});
-			streamedStreetLightPairs = [];
-
-			for (let i = 0; i < STREAM_STREET_LIGHT_PAIRS; i++) {
-				if (i < STREAM_SKIP_INITIAL_LIGHT_PAIRS) {
-					continue;
-				}
-
-				const pair = new THREE.Group();
-				pair.position.z = STREAM_START_Z + i * STREET_LIGHT_STEP * (-STREAM_DIRECTION);
-
-				const shouldEmitRealLight = true;
-
-				const leftLight = template.clone(true);
-				leftLight.position.set(-5.1, -0.5, 0);
-				leftLight.rotation.y = Math.PI * 1.5;
-				leftLight.scale.setScalar(0.5);
-				attachLampLight(leftLight, shouldEmitRealLight);
-				pair.add(leftLight);
-
-				const rightLight = template.clone(true);
-				rightLight.position.set(5.1, -0.5, 0);
-				rightLight.rotation.y = Math.PI / 2;
-				rightLight.scale.setScalar(0.5);
-				attachLampLight(rightLight, shouldEmitRealLight);
-				pair.add(rightLight);
-
-				scene.add(pair);
-				streamedStreetLightPairs.push(pair);
-			}
+		streamedDecorations.forEach(function (d) {
+			scene.remove(d);
 		});
+		streamedDecorations = [];
+
+		// Objects spawn only on the side visible to the camera.
+		// Given camera x=8, the left side (side=-1) is most visible in the field of view.
+		const side = -1;
+
+		for (let i = 0; i < STREAM_DECORATION_COUNT; i++) {
+			const group = new THREE.Group();
+			group.position.z = STREAM_START_Z + i * DECORATION_STEP * (-STREAM_DIRECTION);
+			group.position.y = -0.5;
+
+			// 1. Houses: Always spawn at fixed distance and face the road
+			const bName = buildingNames[i % buildingNames.length];
+			const house = window.AssetManager.get(bName);
+			if (house) {
+				house.scale.setScalar(1.2 + Math.random() * 0.5);
+				// Face the road: for side=-1 (left), the house should face +X
+				house.position.x = side * 12.5; // Fixed distance from road
+				group.add(house);
+			}
+
+			// 2. Random props: Spawn multiple without overlap
+			const usedPositions = [];
+			const numProps = 3 + Math.floor(Math.random() * 4); // 3 to 6 props per segment
+			for (let j = 0; j < numProps; j++) {
+				const pName = propNames[Math.floor(Math.random() * propNames.length)];
+				const prop = window.AssetManager.get(pName);
+				if (prop) {
+					prop.scale.setScalar(0.6);
+					prop.rotation.y = Math.random() * Math.PI * 2;
+					
+					let attempts = 0;
+					let placed = false;
+					while (attempts < 15 && !placed) {
+						const px = side * (8.5 + Math.random() * 2.0);
+						const pz = (Math.random() - 0.5) * 7.5;
+						
+						// Check distance to other props in this segment
+						const tooClose = usedPositions.some(pos => {
+							const dx = pos.x - px;
+							const dz = pos.z - pz;
+							return Math.sqrt(dx*dx + dz*dz) < 1.8; // Slightly tighter spacing to fit more
+						});
+						
+						if (!tooClose) {
+							prop.position.set(px, 0, pz);
+							group.add(prop);
+							usedPositions.push({x: px, z: pz});
+							placed = true;
+						}
+						attempts++;
+					}
+				}
+			}
+
+			scene.add(group);
+			streamedDecorations.push(group);
+		}
 	}
 
 	function buildRoadAndLights() {
@@ -583,6 +602,14 @@ function initApp() {
 		const asphaltTex = texLoader.load('../textures/asphalt.jpg');
 		asphaltTex.wrapS = asphaltTex.wrapT = THREE.RepeatWrapping;
 		asphaltTex.repeat.set(2, 4);
+
+		const sidewalkTex = texLoader.load('../textures/139-stone-block-wall-pbr-texture-seamless-hr-1488102640.jpg', 
+			undefined, undefined, function(e) { console.warn("Failed to load sidewalk texture, using fallback color", e); }
+		);
+		if (sidewalkTex) {
+			sidewalkTex.wrapS = sidewalkTex.wrapT = THREE.RepeatWrapping;
+			sidewalkTex.repeat.set(1, 10);
+		}
 
 		const roadMat = new THREE.MeshPhongMaterial({ 
 			color: 0x444444, 
@@ -594,6 +621,10 @@ function initApp() {
 		const shoulderMat = new THREE.MeshLambertMaterial({ color: 0x27292e });
 		const sideLineMat = new THREE.MeshLambertMaterial({ color: 0xf7f7f7 });
 		const centerLineMat = new THREE.MeshLambertMaterial({ color: 0xffd54a });
+		const sidewalkMat = new THREE.MeshLambertMaterial({ 
+			color: sidewalkTex ? 0xffffff : 0x888888, 
+			map: sidewalkTex 
+		});
 
 		streamedRoadSegments.forEach(function (segment) {
 			scene.remove(segment);
@@ -618,6 +649,14 @@ function initApp() {
 				segment.add(shoulder);
 			});
 
+			[-10.2, 10.2].forEach(function (x) {
+				const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(4, STREAM_SEGMENT_LENGTH), sidewalkMat);
+				sidewalk.rotation.x = -Math.PI / 2;
+				sidewalk.position.set(x, -0.49, STREAM_SEGMENT_LENGTH / 2);
+				sidewalk.receiveShadow = true;
+				segment.add(sidewalk);
+			});
+
 			[-3.8, 3.8].forEach(function (x) {
 				const sideLine = new THREE.Mesh(new THREE.PlaneGeometry(0.12, STREAM_SEGMENT_LENGTH), sideLineMat);
 				sideLine.rotation.x = -Math.PI / 2;
@@ -637,6 +676,7 @@ function initApp() {
 		}
 
 		addStreetLightsFromModel();
+		addDecorationsFromModels();
 	}
 
 	function recycleStreamPool(pool, spacing) {
@@ -683,6 +723,20 @@ function initApp() {
 		if (!scene || deltaSeconds <= 0) return;
 		recycleStreamPool(streamedRoadSegments, STREAM_SEGMENT_LENGTH);
 		recycleStreamPool(streamedStreetLightPairs, STREET_LIGHT_STEP);
+		recycleStreamPool(streamedDecorations, DECORATION_STEP);
+
+		if (camera) {
+			const activeDistance = 150;
+			streamedStreetLightPairs.forEach(pair => {
+				const dist = Math.abs(pair.position.z - camera.position.z);
+				const isActive = dist < activeDistance;
+				pair.traverse(node => {
+					if (node.userData.isLampLight) {
+						node.visible = isActive;
+					}
+				});
+			});
+		}
 	}
 
 	function setupAtmosphereLights() {
@@ -721,14 +775,14 @@ function initApp() {
 		);
 		policeLightRig.add(policeAnchor);
 
-		policeBlueLight = new THREE.SpotLight(0x3d79ff, 2.6, 900,  Math.PI / 7, 0.5, 0.2);
+		policeBlueLight = new THREE.SpotLight(0x3d79ff, 2.6, 1000,  Math.PI / 6, 0.5, 0.2);
 		policeBlueLight.position.set(-3, 1.2, -6);
 		policeBlueTarget = new THREE.Object3D();
 		scene.add(policeBlueTarget);
 		policeBlueLight.target = policeBlueTarget;
 		policeLightRig.add(policeBlueLight);
 
-		policeRedLight = new THREE.SpotLight(0xff3344, 2.6, 900, Math.PI / 7, 0.5, 0.2);
+		policeRedLight = new THREE.SpotLight(0xff3344, 2.6, 1000, Math.PI / 6, 0.5, 0.2);
 		policeRedLight.position.set(-3.0, 1.6, -6);
 		policeRedTarget = new THREE.Object3D();
 		scene.add(policeRedTarget);
@@ -756,7 +810,7 @@ function initApp() {
 			policeLightRig.position.set(
 				targetX,
 				targetY + 2.0,
-				targetZ + 28
+				targetZ + 65
 			);
 
 			// Targets stay slightly above the car so the spotlights point at the car
@@ -768,7 +822,7 @@ function initApp() {
 		const bluePhase = blinkCycle < 0.36;
 		const pulse = 0.35 + 0.65 * Math.max(0, Math.sin(policeLightTime * 10.5));
 
-		const nearIntensity = 1.9 * pulse;
+		const nearIntensity = 5.5 * pulse;
 		policeBlueLight.intensity = bluePhase ? nearIntensity : 0.03;
 		policeRedLight.intensity = bluePhase ? 0.03 : nearIntensity;
 
@@ -873,6 +927,8 @@ function initApp() {
 			scene.add(mesh);
 			currentShownName = name;
 			pendingShownName = name;
+			assetsLoaded.car = true;
+			checkAllAssetsLoaded();
 			return mesh;
 		}
 
@@ -895,6 +951,16 @@ function initApp() {
 
 		mesh.position.set(CAR_BASE_POS.x, CAR_BASE_POS.y, CAR_BASE_POS.z + playerTravelZ);
 		mesh.rotation.set(0, Math.PI, 0);
+
+		// Update wheels rotation
+		if (mesh.userData.wheels && mesh.userData.spec) {
+			const radius = mesh.userData.spec.vehicle.wheelDiameter / 2;
+			const v_ms = kmh2ms(speed);
+			const angularVelocity = v_ms / radius;
+			mesh.userData.wheels.forEach(wheel => {
+				wheel.rotation.x += angularVelocity * deltaSeconds;
+			});
+		}
 	}
 
 	// return current shown mesh
@@ -910,13 +976,18 @@ function initApp() {
 			isAccelerating = false,
 			isBraking = false;
 
-	let raceState = 'countdown';
-	let countdownLeft = RACE_COUNTDOWN_SECONDS;
-	let countdownDisplayValue = RACE_COUNTDOWN_SECONDS;
-	let raceElapsedTime = 0;
-	let penaltyBrakeTimer = 0;
-	let penaltyBrakeLevel = 0;
-	let penaltyTorqueFactor = 1;
+	let raceState = 'loading';
+	let assetsLoaded = {
+		car: false
+	};
+
+	function checkAllAssetsLoaded() {
+		if (assetsLoaded.car) {
+			if (raceState === 'loading') {
+				startCountdown();
+			}
+		}
+	}
 	
 
 	// Helper functions
@@ -1231,7 +1302,7 @@ function initApp() {
 	 * acceleration (m/s) = torqueWheel (m.kg) / (wheelRadius (m) * mass (kg))
 	 */
 
-	let lastTime = new Date().getTime(),
+	let lastTime = performance.now(),
 			nowTime,
 			delta;
 	
@@ -1242,8 +1313,8 @@ function initApp() {
 		window.requestAnimationFrame(loop);
 
 		// Delta time
-		nowTime = new Date().getTime();
-		delta = (nowTime - lastTime) / 1000; // in seconds
+		nowTime = performance.now();
+		delta = (nowTime - lastTime) / 1000;
 		lastTime = nowTime;
 
 		if (raceState === 'countdown') {
@@ -1271,8 +1342,6 @@ function initApp() {
 			isBraking = false;
 		}
 		
-		let oldSpeed = speed,
-				oldRpm = rpm;
 		
 		// Torque
 		
@@ -1394,7 +1463,7 @@ function initApp() {
 
 	})();
 
-	startCountdown();
+
 	
 	///////////////////////////////////////////////
 	// WEBAUDIO

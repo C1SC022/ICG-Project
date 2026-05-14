@@ -47,6 +47,22 @@
     </section>
   </div>
 
-  <script src="game.js"></script>
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://threejs.org/build/three.module.js",
+        "three/addons/": "https://threejs.org/examples/jsm/"
+      }
+    }
+  </script>
+  <script src="code/assets.js"></script>
+  <script type="module">
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    window.GLTFLoader = GLTFLoader;
+    if (window.AssetManager) {
+        window.AssetManager.loadAll();
+    }
+  </script>
 </body>
 </html>

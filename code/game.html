@@ -38,15 +38,27 @@
 	<button id="menuRaceBtn" class="race-btn race-btn--secondary" type="button">Menu</button>
 </div>
 
+<div id="loadingOverlay" style="position:fixed;inset:0;background:#05060a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#00e6d9;font-family:Orbitron,sans-serif;transition:opacity 0.5s;">
+	<h2 style="margin-bottom:20px;text-shadow:0 0 12px rgba(0,230,217,0.4);">LOADING ENVIRONMENT...</h2>
+	<div style="width:300px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+		<div id="loadingProgress" style="width:0%;height:100%;background:var(--neon-cyan, #00e6d9);transition:width 0.2s;box-shadow:0 0 10px #00e6d9;"></div>
+	</div>
+</div>
+
 
 <script src="cars.js"></script>
+<script src="assets.js"></script>
 <script type="module">
 	import * as THREE from 'three';
 	import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 	import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
+	import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+	import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 	window.THREE = THREE;
 	window.GLTFLoader = GLTFLoader;
 	window.ColladaLoader = ColladaLoader;
+	window.OBJLoader = OBJLoader;
+	window.MTLLoader = MTLLoader;
 
 	const urlParams = new URLSearchParams(window.location.search);
 	const isMulti = urlParams.get('mode') === 'multi';
@@ -57,9 +69,24 @@
 		document.querySelector('.dashboard--p2').classList.add('dashboard--split-right');
 	}
 
-	const gameScript = document.createElement('script');
-	gameScript.src = isMulti ? 'multiplayer.js' : 'game.js';
-	document.body.appendChild(gameScript);
+	// In game mode, we need to ensure everything is loaded before starting
+	const loadingProgress = document.getElementById('loadingProgress');
+	const loadingOverlay = document.getElementById('loadingOverlay');
+
+	window.AssetManager.loadAll(
+		function(progress) {
+			if (loadingProgress) loadingProgress.style.width = (progress * 100) + '%';
+		},
+		function() {
+			if (loadingOverlay) {
+				loadingOverlay.style.opacity = '0';
+				setTimeout(() => loadingOverlay.style.display = 'none', 500);
+			}
+			const gameScript = document.createElement('script');
+			gameScript.src = isMulti ? 'multiplayer.js' : 'game.js';
+			document.body.appendChild(gameScript);
+		}
+	);
 </script>
 </body>
 </html>
