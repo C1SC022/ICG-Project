@@ -41,7 +41,13 @@
 				3
 			],
 			"mesh":4,
-			"name":"car9"
+			"name":"car9",
+			"rotation":[
+				0.5,
+				0.5,
+				-0.5,
+				0.5
+			]
 		}
 	],
 	"materials":[
