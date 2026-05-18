@@ -3,6 +3,7 @@ window.CarCatalog = {
   specs: {
     car1: {
       vehicle: {
+        soundPath: '../sounds/car1.ogg',
         mass: 1000,
         cx: 0.28,
         gears: [0, 0.4, 0.7, 1.0, 1.3, 1.5, 1.68],
@@ -31,6 +32,7 @@ window.CarCatalog = {
     },
     car2: {
       vehicle: {
+        soundPath: '../sounds/car1.ogg',
         mass: 1200,
         cx: 0.32,
         gears: [0, 0.45, 0.75, 1.05, 1.35, 1.55, 1.75],
@@ -57,8 +59,9 @@ window.CarCatalog = {
       },
       initialState: { gear: 0, speed: 0 }
     },
-    taxi: {
+    car3: {
       vehicle: {
+        soundPath: '../sounds/car1.ogg',
         mass: 1100,
         cx: 0.30,
         gears: [0, 0.42, 0.72, 1.02, 1.32, 1.52, 1.65],
@@ -69,25 +72,25 @@ window.CarCatalog = {
       },
       engine: {
         rpmIdle: 1100,
-        rpmMax: 7500,
-        rpmRedzone: 6200,
-        torqueMin: 22,
-        torqueMax: 54,
-        torquePeak: 4200,
-        torqueSigma: 1100
+        rpmMax: 8200,
+        rpmRedzone: 7000,
+        torqueMin: 23,
+        torqueMax: 52,
+        torquePeak: 4800,
+        torqueSigma: 1150
       },
       clutch: {
-        revUpRate: 2700,
+        revUpRate: 2750,
         idleReturnRate: 2.1,
         engageTime: 0.24,
-        boostMultiplier: 420,
+        boostMultiplier: 425,
         slipDrag: 0.00075
       },
       initialState: { gear: 0, speed: 0 }
     }
   },
   getCarList() {
-    return ['car1', 'car2', 'taxi'];
+    return ['car1', 'car2', 'car3'];
   },
   getCarSpec(name) {
     return this.specs[name] || null;
@@ -152,15 +155,17 @@ window.CarCatalog = {
           }
       });
 
-      const size = meshBounds.getSize(new THREE.Vector3());
-      const center = meshBounds.getCenter(new THREE.Vector3());
+      let size = meshBounds.getSize(new THREE.Vector3());
+      let center = meshBounds.getCenter(new THREE.Vector3());
+            // Align car3 with car1 (it's modeled sideways/differently)
       
-      // Center the model relative to its own group origin first
+
+      // Center the model
       fromModel.position.x -= center.x;
       fromModel.position.y -= center.y;
       fromModel.position.z -= center.z;
 
-      const targetLength = 4.5; // Base car length in world units
+      const targetLength = 4.5; // Reduced from 4.8 to better match the other cars
       const currentLength = size.z > 0 ? size.z : 1;
       const normalizationScale = targetLength / currentLength;
       const baseModeScale = (mode === 'preview' ? 0.72 : 0.62);
@@ -173,10 +178,12 @@ window.CarCatalog = {
 
       const root = new THREE.Group();
       root.add(fromModel);
+      root.updateMatrixWorld(true); // Force matrix update so descendant world coordinates are correctly scaled and translated
 
       // Add vehicle lights
       let frontMesh = null;
       let rearMesh = null;
+      const frontLightPositions = [];
 
       fromModel.traverse(function(node) {
         if (!node.isMesh) return;
@@ -191,8 +198,13 @@ window.CarCatalog = {
                 if (name === 'car2' && m.name) {
                     const mn = m.name.toLowerCase();
                     if (mn.indexOf('red_light') >= 0) {
-                        m.emissive = new THREE.Color(0xff0000);
-                        m.emissiveIntensity = mode === 'preview' ? 1.0 : 2.5;
+                        if (mode === 'preview') {
+                            m.emissive = new THREE.Color(0xff0000);
+                            m.emissiveIntensity = 1.0;
+                        } else {
+                            m.emissive = new THREE.Color(0x000000);
+                            m.emissiveIntensity = 0.0;
+                        }
                     }
                     if (mn.indexOf('glass') >= 0) {
                         // Headlights
@@ -211,6 +223,14 @@ window.CarCatalog = {
         // Updated search terms for Dodge Charger and other models
         const isFront = hasFrontMat || n.indexOf('farol_f') >= 0 || n.indexOf('headlight') >= 0;
         const isRear = hasRearMat || n.indexOf('farol_b') >= 0 || n.indexOf('taillight') >= 0 || n.indexOf('arka') >= 0;
+
+        if (isFront) {
+          if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+          const localCenter = node.geometry.boundingBox.getCenter(new THREE.Vector3());
+          node.updateMatrixWorld(true);
+          const carLocalPos = localCenter.clone().applyMatrix4(node.matrixWorld);
+          frontLightPositions.push(carLocalPos);
+        }
 
         if (isFront && !frontMesh) frontMesh = node;
         if (isRear && !rearMesh) rearMesh = node;
@@ -248,41 +268,50 @@ window.CarCatalog = {
         return hasEmissiveMesh ? emissiveBox : new THREE.Box3().setFromObject(mesh);
       }
 
-      if (frontMesh) {
+      let leftPos = null;
+      let rightPos = null;
+      const zBumper = (targetLength * baseModeScale) / 2 - 0.7; // Fallback bumper position
+
+      if (frontLightPositions.length >= 2) {
+        // Sort by X coordinate (negative is left, positive is right)
+        frontLightPositions.sort((a, b) => a.x - b.x);
+        
+        // Take the left-most and right-most detected headlight meshes
+        leftPos = frontLightPositions[0];
+        rightPos = frontLightPositions[frontLightPositions.length - 1];
+      } else if (frontLightPositions.length === 1) {
+        // Single headlight mesh containing both lights, split it by width
+        const pos = frontLightPositions[0];
         const box = getLightAnchorBox(frontMesh);
         const width = Math.max(0.25, box.max.x - box.min.x);
-        const centerX = (box.min.x + box.max.x) * 0.5;
-        const y = box.min.y + (box.max.y - box.min.y) * 0.86;
-        const carBox = new THREE.Box3().setFromObject(fromModel);
-        const z = carBox.max.z + 0.15; // Placed slightly in front of the bumper
-
-        let leftX = box.min.x + width * 0.1;
-        let rightX = box.max.x - width * 0.1;
-        if (rightX - leftX < 0.7) {
-          leftX = centerX - 0.45;
-          rightX = centerX + 0.45;
-        }
-
-        const leftPos = root.worldToLocal(new THREE.Vector3(leftX, y, z));
-        const rightPos = root.worldToLocal(new THREE.Vector3(rightX, y, z));
-
-        const frontIntensity = mode === 'preview' ? 4.5 : 9;
-        const frontDistance = mode === 'preview' ? 15 : 45;
-
-        const leftLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, 1.2, 0.45, 0.2);
-        leftLight.position.copy(leftPos);
-        leftLight.target.position.set(leftPos.x, leftPos.y , leftPos.z + (mode === 'preview' ? 7 : 2));
-        root.add(leftLight);
-        root.add(leftLight.target);
-
-        const rightLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, 1.2, 0.45, 0.2);
-        rightLight.position.copy(rightPos);
-        rightLight.target.position.set(rightPos.x , rightPos.y , rightPos.z + (mode === 'preview' ? 2 : 2  ));
-        root.add(rightLight);
-        root.add(rightLight.target);
+        leftPos = new THREE.Vector3(pos.x - width * 0.35, pos.y, pos.z);
+        rightPos = new THREE.Vector3(pos.x + width * 0.35, pos.y, pos.z);
+      } else {
+        // Fallback headlight positions if no headlight meshes are detected
+        leftPos = new THREE.Vector3(-0.45, 0.42, zBumper);
+        rightPos = new THREE.Vector3(0.45, 0.42, zBumper);
       }
 
-      if (rearMesh) {
+      // Configured for a premium headlight beam that starts bright and diffuses smoothly over 40 meters
+      const frontIntensity = mode === 'preview' ? 35 : 65;
+      const frontDistance = 40;
+      const frontAngle = 0.52; // Focused beam
+      const frontPenumbra = 0.85; // High diffusion at the edges
+      const frontDecay = 1.6; // Soft, smooth physical decay
+
+      const leftLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, frontAngle, frontPenumbra, frontDecay);
+      leftLight.position.copy(leftPos);
+      leftLight.target.position.set(leftPos.x, leftPos.y - 0.4, leftPos.z + 5); // Aimed slightly down and forward
+      root.add(leftLight);
+      root.add(leftLight.target);
+
+      const rightLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, frontAngle, frontPenumbra, frontDecay);
+      rightLight.position.copy(rightPos);
+      rightLight.target.position.set(rightPos.x, rightPos.y - 0.4, rightPos.z + 5); // Aimed slightly down and forward
+      root.add(rightLight);
+      root.add(rightLight.target);
+
+      if (rearMesh && mode === 'preview') {
         const box = getLightAnchorBox(rearMesh);
         const width = Math.max(0.15, box.max.x - box.min.x);
         const height = Math.max(0.02, box.max.y - box.min.y);
@@ -323,7 +352,7 @@ window.CarCatalog = {
       fromModel.traverse(node => {
         if (node.isMesh) {
           const n = node.name.toLowerCase();
-          if (n.indexOf('wheel') >= 0 || n.indexOf('tire') >= 0 || n.indexOf('lastik') >= 0 || n.indexOf('jant') >= 0 || n.indexOf('teker') >= 0 || n.indexOf('circle') >= 0 || n === 'fw' || n === 'bw') {
+          if (n.indexOf('wheel') >= 0 || n.indexOf('whell') >= 0 || n.indexOf('tire') >= 0 || n.indexOf('lastik') >= 0 || n.indexOf('jant') >= 0 || n.indexOf('teker') >= 0 || n.indexOf('circle') >= 0 || n === 'fw' || n === 'bw') {
             
             // Fix pivot so the wheel rotates around its own center
             if (node.geometry) {
@@ -337,11 +366,15 @@ window.CarCatalog = {
               offset.x *= node.scale.x;
               offset.y *= node.scale.y;
               offset.z *= node.scale.z;
-              offset.applyEuler(node.rotation);
               
+              
+              offset.applyEuler(node.rotation);
               node.position.add(offset);
+
+              
             }
 
+            node.userData.axleName = (name === 'car3') ? 'y' : 'x';
             wheels.push(node);
           }
         }
@@ -368,61 +401,9 @@ window.CarCatalog = {
         modelPath = '../blender_models/car1.gltf';
       }
 
-      if (name === 'taxi' && window.OBJLoader) {
-          console.log('[CarCatalog] Loading taxi model...');
-          const mtlLoader = window.MTLLoader ? new window.MTLLoader() : null;
-          const objLoader = new window.OBJLoader();
-          const base = '../blender_models/Taxi_v2_L1.123c0e2a4607-5089-4839-af97-a0bc9f0a915c/';
-          const mtlFile = '13914_Taxi_v2_L1.mtl';
-          const objFile = '13914_Taxi_v2_L1.obj';
-          
-          const onErr = (err) => {
-              console.error('[CarCatalog] Failed to load taxi model', err);
-              catalog._carLoading[name] = false;
-          };
-
-          const finalizeLoading = (obj) => {
-              console.log('[CarCatalog] Taxi model loaded successfully', obj);
-              catalog._carTemplates[name] = obj;
-              obj.traverse(function(node) {
-                  if (node.isMesh) {
-                      node.castShadow = true;
-                      node.receiveShadow = true;
-                      if (node.material) {
-                          const mats = Array.isArray(node.material) ? node.material : [node.material];
-                          mats.forEach(m => {
-                              m.side = THREE.DoubleSide;
-                              // Ensure materials are visible
-                              m.opacity = 1.0;
-                              m.transparent = false;
-                          });
-                      }
-                  }
-              });
-              const callbacks = (catalog._carQueues[name] || []).slice();
-              catalog._carQueues[name] = [];
-              catalog._carLoading[name] = false;
-              callbacks.forEach((cb) => cb());
-          };
-
-          if (mtlLoader) {
-              mtlLoader.setPath(base);
-              mtlLoader.load(mtlFile, function(materials) {
-                  console.log('[CarCatalog] Taxi materials loaded');
-                  materials.preload();
-                  objLoader.setMaterials(materials);
-                  objLoader.setPath(base);
-                  objLoader.load(objFile, finalizeLoading, undefined, onErr);
-              }, undefined, (err) => {
-                  console.warn('[CarCatalog] Taxi MTL failed to load, trying OBJ only', err);
-                  objLoader.setPath(base);
-                  objLoader.load(objFile, finalizeLoading, undefined, onErr);
-              });
-          } else {
-              objLoader.setPath(base);
-              objLoader.load(objFile, finalizeLoading, undefined, onErr);
-          }
-          return null;
+      if (name === 'car3' && window.GLTFLoader) {
+        loader = new window.GLTFLoader();
+        modelPath = '../blender_models/car3/LowPolyCars.gltf';
       }
 
       if (loader && modelPath) {

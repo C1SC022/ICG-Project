@@ -254,6 +254,29 @@ function initApp() {
 		}
 		if (gear < gears.length - 1) {
 			let prev = gear;
+			
+			// Apply shifting penalty if shifting outside the optimal RPM window
+			let sw = shiftWindows[prev];
+			if (sw) {
+				if (rpm < sw.min) {
+					// Shifted too early (under-revving)
+					let diff = sw.min - rpm;
+					if (diff > 800) {
+						setPenalty('heavy');
+					} else {
+						setPenalty('light');
+					}
+				} else if (rpm > sw.max) {
+					// Shifted too late (over-revving/redlining)
+					let diff = rpm - sw.max;
+					if (diff > 500) {
+						setPenalty('heavy');
+					} else {
+						setPenalty('light');
+					}
+				}
+			}
+
 			gear++;
 			if (gearMeter) gearMeter.innerHTML = (gear === 0) ? 'N' : gear;
 			engageGear(prev, gear);
@@ -279,6 +302,11 @@ function initApp() {
 	const cars = CAR_SPECS;
 	let currentCarName = SINGLE_CAR_NAME;
 	let currentCar = cars[currentCarName];
+	if (currentCar && currentCar.vehicle && currentCar.vehicle.soundPath) {
+		motorSamplePath = currentCar.vehicle.soundPath;
+	}
+	// Load the audio sample via the centralized SoundManager
+	window.SoundManager.load(motorSamplePath);
 
 	let {
 		mass,
@@ -387,6 +415,9 @@ function initApp() {
 
 	let shiftWindows = {};
 	let launchWindow = null;
+	let penaltyBrakeTimer = 0,
+		penaltyBrakeLevel = 0,
+		penaltyTorqueFactor = 1;
 
 	let gear = currentCar.initialState.gear,
 		speed = currentCar.initialState.speed,	// in km/h
@@ -417,6 +448,31 @@ function initApp() {
 				speed = Math.max(0, speed - Math.abs(rpmDiff) * slipDrag);
 			}
 		}
+	}
+
+	let smokeParticles = [];
+	function spawnSmoke(x, y, z) {
+		const geom = new THREE.SphereGeometry(0.12, 5, 5);
+		const mat = new THREE.MeshBasicMaterial({
+			color: 0xcccccc,
+			transparent: true,
+			opacity: 0.7,
+			depthWrite: false
+		});
+		const mesh = new THREE.Mesh(geom, mat);
+		mesh.position.set(x, y, z);
+		scene.add(mesh);
+		
+		smokeParticles.push({
+			mesh: mesh,
+			opacity: 0.7,
+			size: 0.12,
+			velocity: new THREE.Vector3(
+				(Math.random() - 0.5) * 0.4,
+				0.5 + Math.random() * 0.5,
+				2.0 + Math.random() * 1.5 // drifts backwards (towards +Z since car travels towards -Z)
+			)
+		});
 	}
 
 	// --- Three.js simple cars --------------------------------------------
@@ -958,7 +1014,8 @@ function initApp() {
 			const v_ms = kmh2ms(speed);
 			const angularVelocity = v_ms / radius;
 			mesh.userData.wheels.forEach(wheel => {
-				wheel.rotation.x += angularVelocity * deltaSeconds;
+				const axleName = wheel.userData.axleName || 'x';
+				wheel.rotation[axleName] += angularVelocity * deltaSeconds;
 			});
 		}
 	}
@@ -1111,7 +1168,7 @@ function initApp() {
 		updateShiftWindowUI();
 
 	// Add visual finish line
-	const finishLineGeom = new THREE.PlaneGeometry(16.4, 0.4);
+	const finishLineGeom = new THREE.PlaneGeometry(8.0, 0.4);
 	const finishLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
 	const finishLine = new THREE.Mesh(finishLineGeom, finishLineMat);
 	finishLine.rotation.x = Math.PI / 2;
@@ -1120,7 +1177,7 @@ function initApp() {
 	scene.add(finishLine);
 	
 	// Add a taller glowing line for visibility
-	const finishLineGlowGeom = new THREE.PlaneGeometry(16.4, 0.25);
+	const finishLineGlowGeom = new THREE.PlaneGeometry(8.0, 0.25);
 	const finishLineGlowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
 	const finishLineGlow = new THREE.Mesh(finishLineGlowGeom, finishLineGlowMat);
 	finishLineGlow.position.set(0, -0.3, CAR_BASE_POS.z - 400);
@@ -1134,7 +1191,7 @@ function initApp() {
 
 	function updateShiftWindowUI() {
 		let maxGear = gears.length - 1;
-		let window = shiftWindows[gear];
+		let sw = shiftWindows[gear];
 
 		if (gear === 0) {
 			if (launchWindow) {
@@ -1150,12 +1207,12 @@ function initApp() {
 			return;
 		}
 
-		if (!window) {
+		if (!sw) {
 			if (rpmMeter) rpmMeter.setWindow(null, null);
 			return;
 		}
 
-		if (rpmMeter) rpmMeter.setWindow(window.min, window.max, window.target, rpm);
+		if (rpmMeter) rpmMeter.setWindow(sw.min, sw.max, sw.target, rpm);
 	}
 
 	function showCountdown(value) {
@@ -1243,6 +1300,7 @@ function initApp() {
 
 		hideFinish();
 		showCountdown(countdownDisplayValue);
+		window.SoundManager.getPlayer('p1').play(rpm, speed);
 	}
 
 	function startRaceNow() {
@@ -1276,6 +1334,7 @@ function initApp() {
 		penaltyBrakeLevel = 0;
 		penaltyTorqueFactor = 1;
 		showFinish(raceElapsedTime);
+		window.SoundManager.getPlayer('p1').stop();
 	}
 
 	if (restartRaceBtn) {
@@ -1438,13 +1497,7 @@ function initApp() {
 		}
 
 		// Update engine sound
-		if (source) {
-			source.playbackRate.value = rpm / 4000;
-		}
-
-		if (source2) {
-			source2.playbackRate.value = speed / 500;
-		}
+		window.SoundManager.getPlayer('p1').update(rpm, speed);
 
 		syncCarWithCamera(delta);
 
@@ -1455,6 +1508,41 @@ function initApp() {
 		updateStreamedWorld(delta);
 		updateAtmosphereLights(delta);
 
+		// Spawn tire smoke if shifting penalty is active (rear wheels spin/smoke)
+		let activeMesh = getCurrentMesh();
+		if (raceState === 'racing' && penaltyBrakeTimer > 0 && activeMesh && activeMesh.userData.wheels) {
+			let sortedWheels = [...activeMesh.userData.wheels].map(w => {
+				let pos = new THREE.Vector3();
+				w.getWorldPosition(pos);
+				return { wheel: w, z: pos.z, pos: pos };
+			}).sort((a, b) => b.z - a.z); // b.z - a.z: larger Z comes first (rear wheels since car travels to -Z)
+			
+			if (sortedWheels.length >= 2) {
+				for (let k = 0; k < 2; k++) {
+					spawnSmoke(sortedWheels[0].pos.x, sortedWheels[0].pos.y - 0.2, sortedWheels[0].pos.z);
+					spawnSmoke(sortedWheels[1].pos.x, sortedWheels[1].pos.y - 0.2, sortedWheels[1].pos.z);
+				}
+			}
+		}
+
+		// Update active smoke particles
+		for (let i = smokeParticles.length - 1; i >= 0; i--) {
+			let p = smokeParticles[i];
+			p.mesh.position.addScaledVector(p.velocity, delta);
+			p.opacity -= delta * 1.5;
+			p.size += delta * 0.8;
+			
+			p.mesh.material.opacity = Math.max(0, p.opacity);
+			p.mesh.scale.setScalar(p.size / 0.12);
+			
+			if (p.opacity <= 0) {
+				scene.remove(p.mesh);
+				p.mesh.geometry.dispose();
+				p.mesh.material.dispose();
+				smokeParticles.splice(i, 1);
+			}
+		}
+
 		// update controls (free camera) then render three.js scene
 		// No free-camera controls active — camera is fixed to road position
 		if (typeof renderer !== 'undefined' && renderer && scene && camera) {
@@ -1462,99 +1550,13 @@ function initApp() {
 		}
 
 	})();
-
-
 	
 	///////////////////////////////////////////////
-	// WEBAUDIO
+	// WEBAUDIO - Refactored to Centralized SoundManager
 	
-	// Courtesy of https://mdn.github.io/decode-audio-data/
-	
-	// define variables
-
-	var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-	var source,source2,
-			gainNode;
-	var songLength;
-
-	var loader = document.querySelector('.loader');
-	var btnVolume = document.querySelector('.btn-volume');
-
-	// use XHR to load an audio track, and
-	// decodeAudioData to decode it and stick it in a buffer.
-	// Then we put the buffer into the source
-
-	function getData() {
-		source = audioCtx.createBufferSource();
-		source2 = audioCtx.createBufferSource();
-		let request = new XMLHttpRequest();
-
-		request.open('GET', motorSamplePath, true);
-		request.responseType = 'arraybuffer';
-
-		request.onload = function() {
-			var audioData = request.response;
-
-			audioCtx.decodeAudioData(audioData, function(buffer) {
-				let myBuffer = buffer;	// local buffer ?
-				let myBuffer2 = buffer;
-//				songLength = buffer.duration; // in seconds
-				source.buffer = myBuffer;
-				source2.buffer = myBuffer2;
-
-				source.loop = true;
-				source2.loop = true;
-
-				// Hacky granular engine sound!
-				source.loopStart = 0.1; // Tune this
-				source.loopEnd = 0.1735; // Tune this
-
-				source2.loopStart = 0.605;
-				source2.loopEnd = 0.650;
-				
-				source.playbackRate.value = 1;
-				source2.playbackRate.value = 1;
-
-				// Create a gain node.
-				gainNode = audioCtx.createGain();
-				// Connect the source to the gain node.
-				source.connect(gainNode);
-				source2.connect(gainNode);
-				// Connect the gain node to the destination.
-				gainNode.connect(audioCtx.destination);
-
-				// Remove loader if it exists
-				if (loader) loader.classList.remove('active');
-			},
-
-				function(e){"Error with decoding audio data" + e.err});
-		}
-
-		request.send();
-	}
-
-	// wire up buttons — only if element exists
-	if (btnVolume) {
-		btnVolume.onclick = function() {
-			this.classList.toggle('active');
-
-			if (this.classList.contains('active')) {
-				gainNode.gain.value = 1;
-			} else {
-				gainNode.gain.value = 0;
-			}
-		}
-	}
-
-	// Load the sample — only if audio UI elements exist
-	if (loader && btnVolume) {
-		getData();
-		// Launch loop playing
-		setTimeout(() => { if (source) source.start(0); if (source2) source2.start(0); }, 100);
-	}
-	
-
-	}
+	// Hook up the volume button
+	window.SoundManager.setupVolumeButton();
+}
 
 	// If DOM already loaded, run init immediately, otherwise wait for event
 	console.log('[game.js] readyState:', document.readyState);

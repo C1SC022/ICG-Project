@@ -30,6 +30,41 @@
     /* small neon pulse on hover */
     .btn-start.left:hover{box-shadow:0 10px 40px rgba(255,45,149,0.14)}
     .btn-start.right:hover{box-shadow:0 10px 40px rgba(0,230,217,0.12)}
+    
+    /* Rules button styling */
+    .rules-btn-container {
+      position: absolute;
+      bottom: 3.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+    }
+    .btn-rules {
+      padding: .65rem 1.4rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(10, 15, 30, 0.85);
+      color: #9ab4d9;
+      font-family: Orbitron, sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      text-transform: uppercase;
+    }
+    .btn-rules:hover {
+      background: rgba(20, 30, 50, 0.95);
+      color: #00e6d9;
+      border-color: rgba(0, 230, 217, 0.4);
+      box-shadow: 0 0 20px rgba(0, 230, 217, 0.25);
+      transform: scale(1.05);
+    }
+    .btn-rules:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
 <body>
@@ -45,6 +80,10 @@
       <p>1v1 mode — compete against an opponent. Best of one run.</p>
       <button  onclick="location.href='code/CarSelection.html?mode=multi'" id="start-race" class="btn-start right">Start Race</button>
     </section>
+  </div>
+
+  <div class="rules-btn-container">
+    <button onclick="location.href='code/rules.html'" class="btn-rules">Rules & Guide</button>
   </div>
 
   <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>

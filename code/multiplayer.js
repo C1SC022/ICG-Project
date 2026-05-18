@@ -116,6 +116,15 @@ function initMultiApp() {
     const p1CarName = urlParams.get('p1') || 'car1';
     const p2CarName = urlParams.get('p2') || 'car2';
 
+    // Centralized SoundManager loading for multiplayer
+    let soundPath = '../sounds/car1.ogg';
+    const p1Spec = CAR_SPECS[p1CarName];
+    if (p1Spec && p1Spec.vehicle && p1Spec.vehicle.soundPath) {
+        soundPath = p1Spec.vehicle.soundPath;
+    }
+    window.SoundManager.load(soundPath);
+    window.SoundManager.setupVolumeButton();
+
     const RACE_COUNTDOWN_SECONDS = 5;
     const RACE_FINISH_DISTANCE_METERS = 400;
 
@@ -264,10 +273,53 @@ function initMultiApp() {
             }
         }
 
+        setPenalty(level) {
+            const SHIFT_PENALTY_BRAKE_LIGHT = 0.35;
+            const SHIFT_PENALTY_BRAKE_HEAVY = 0.6;
+            const SHIFT_PENALTY_DURATION_LIGHT = 0.2;
+            const SHIFT_PENALTY_DURATION_HEAVY = 0.38;
+            const SHIFT_PENALTY_TORQUE_LIGHT = 0.88;
+            const SHIFT_PENALTY_TORQUE_HEAVY = 0.74;
+
+            if (level === 'light') {
+                this.penaltyBrakeTimer = Math.max(this.penaltyBrakeTimer, SHIFT_PENALTY_DURATION_LIGHT);
+                this.penaltyBrakeLevel = Math.max(this.penaltyBrakeLevel, SHIFT_PENALTY_BRAKE_LIGHT);
+                this.penaltyTorqueFactor = Math.min(this.penaltyTorqueFactor, SHIFT_PENALTY_TORQUE_LIGHT);
+                return;
+            }
+
+            this.penaltyBrakeTimer = Math.max(this.penaltyBrakeTimer, SHIFT_PENALTY_DURATION_HEAVY);
+            this.penaltyBrakeLevel = Math.max(this.penaltyBrakeLevel, SHIFT_PENALTY_BRAKE_HEAVY);
+            this.penaltyTorqueFactor = Math.min(this.penaltyTorqueFactor, SHIFT_PENALTY_TORQUE_HEAVY);
+        }
+
         gearUp() {
             if (raceState !== 'racing') return;
             if (this.gear < this.spec.vehicle.gears.length - 1) {
                 const prev = this.gear;
+
+                // Apply shifting penalty if shifting outside the optimal RPM window
+                let sw = this.shiftWindows[prev];
+                if (sw) {
+                    if (this.rpm < sw.min) {
+                        // Shifted too early (under-revving)
+                        let diff = sw.min - this.rpm;
+                        if (diff > 800) {
+                            this.setPenalty('heavy');
+                        } else {
+                            this.setPenalty('light');
+                        }
+                    } else if (this.rpm > sw.max) {
+                        // Shifted too late (over-revving/redlining)
+                        let diff = this.rpm - sw.max;
+                        if (diff > 500) {
+                            this.setPenalty('heavy');
+                        } else {
+                            this.setPenalty('light');
+                        }
+                    }
+                }
+
                 this.gear++;
                 this.engageGear(prev, this.gear);
             }
@@ -302,6 +354,31 @@ function initMultiApp() {
     let p1 = new Player('p1', p1CarName, '.meter--rpm.meter--p1', '.meter--gear.meter--p1');
     let p2 = new Player('p2', p2CarName, '.meter--rpm.meter--p2', '.meter--gear.meter--p2');
 
+    let smokeParticles = [];
+    function spawnSmoke(x, y, z) {
+        const geom = new THREE.SphereGeometry(0.12, 5, 5);
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0xcccccc,
+            transparent: true,
+            opacity: 0.7,
+            depthWrite: false
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.set(x, y, z);
+        scene.add(mesh);
+        
+        smokeParticles.push({
+            mesh: mesh,
+            opacity: 0.7,
+            size: 0.12,
+            velocity: new THREE.Vector3(
+                (Math.random() - 0.5) * 0.4,
+                0.5 + Math.random() * 0.5,
+                2.0 + Math.random() * 1.5 // drifts backwards (towards +Z since car travels towards -Z)
+            )
+        });
+    }
+
     let raceState = 'loading';
     let assetsLoaded = {
         p1Car: false,
@@ -313,6 +390,10 @@ function initMultiApp() {
             if (raceState === 'loading') {
                 raceState = 'countdown';
                 document.getElementById('raceCountdown').classList.remove('hidden');
+                
+                // Play sounds for P1 and P2!
+                window.SoundManager.getPlayer('p1').play(p1.rpm, p1.speed);
+                window.SoundManager.getPlayer('p2').play(p2.rpm, p2.speed);
             }
         }
     }
@@ -364,7 +445,7 @@ function initMultiApp() {
         loadCarModels();
 
         // Add visual finish line
-        const finishLineGeom = new THREE.PlaneGeometry(16.4, 0.4);
+        const finishLineGeom = new THREE.PlaneGeometry(8.0, 0.4);
         const finishLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
         const finishLine = new THREE.Mesh(finishLineGeom, finishLineMat);
         finishLine.rotation.x = Math.PI / 2;
@@ -372,7 +453,7 @@ function initMultiApp() {
         finishLine.position.set(0, -0.485, CAR_BASE_POS_Z - 400);
         scene.add(finishLine);
         
-        const finishLineGlowGeom = new THREE.PlaneGeometry(16.4, 0.25);
+        const finishLineGlowGeom = new THREE.PlaneGeometry(8.0, 0.25);
         const finishLineGlowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
         const finishLineGlow = new THREE.Mesh(finishLineGlowGeom, finishLineGlowMat);
         finishLineGlow.position.set(0, -0.3, CAR_BASE_POS_Z - 400);
@@ -652,6 +733,9 @@ function initMultiApp() {
             document.getElementById('raceFinishTime').textContent = `Time: ${winner.finishTime.toFixed(2)}s`;
             document.getElementById('raceFinish').classList.remove('hidden');
             raceState = 'finished';
+            
+            // Stop both players' engine sounds!
+            window.SoundManager.stopAll();
         }
     }
 
@@ -677,6 +761,10 @@ function initMultiApp() {
 
         updatePhysics(p1, delta); updatePhysics(p2, delta);
         p1.updateUI(); p2.updateUI();
+
+        // Update audio playback rates based on dynamic RPM and Speed
+        window.SoundManager.getPlayer('p1').update(p1.rpm, p1.speed);
+        window.SoundManager.getPlayer('p2').update(p2.rpm, p2.speed);
 
         const leaderZ = Math.min(p1.travelZ, p2.travelZ); // travelZ is negative, so min() is further ahead
         const gap = Math.abs(p1.travelZ - p2.travelZ);
@@ -707,7 +795,8 @@ function initMultiApp() {
                 const v_ms = p1.speed / 3.6;
                 const angularVelocity = v_ms / radius;
                 p1.mesh.userData.wheels.forEach(wheel => {
-                    wheel.rotation.x += angularVelocity * delta;
+                    const axleName = wheel.userData.axleName || 'x';
+                    wheel.rotation[axleName] += angularVelocity * delta;
                 });
             }
         }
@@ -719,7 +808,8 @@ function initMultiApp() {
                 const v_ms = p2.speed / 3.6;
                 const angularVelocity = v_ms / radius;
                 p2.mesh.userData.wheels.forEach(wheel => {
-                    wheel.rotation.x += angularVelocity * delta;
+                    const axleName = wheel.userData.axleName || 'x';
+                    wheel.rotation[axleName] += angularVelocity * delta;
                 });
             }
         }
@@ -757,6 +847,56 @@ function initMultiApp() {
         const bluePhase = (policeLightTime % 0.72) < 0.36;
         policeBlueLight.intensity = bluePhase ? nearIntensity : 0.03;
         policeRedLight.intensity = bluePhase ? 0.03 : nearIntensity;
+
+        // Spawn tire smoke for Player 1 if shifting penalty is active (rear wheels spin)
+        if (raceState === 'racing' && p1.penaltyBrakeTimer > 0 && p1.mesh && p1.mesh.userData.wheels) {
+            let sortedWheels = [...p1.mesh.userData.wheels].map(w => {
+                let pos = new THREE.Vector3();
+                w.getWorldPosition(pos);
+                return { wheel: w, z: pos.z, pos: pos };
+            }).sort((a, b) => b.z - a.z); // b.z - a.z: larger Z comes first (rear wheels since car travels to -Z)
+            
+            if (sortedWheels.length >= 2) {
+                for (let k = 0; k < 2; k++) {
+                    spawnSmoke(sortedWheels[0].pos.x, sortedWheels[0].pos.y - 0.2, sortedWheels[0].pos.z);
+                    spawnSmoke(sortedWheels[1].pos.x, sortedWheels[1].pos.y - 0.2, sortedWheels[1].pos.z);
+                }
+            }
+        }
+
+        // Spawn tire smoke for Player 2 if shifting penalty is active (rear wheels spin)
+        if (raceState === 'racing' && p2.penaltyBrakeTimer > 0 && p2.mesh && p2.mesh.userData.wheels) {
+            let sortedWheels = [...p2.mesh.userData.wheels].map(w => {
+                let pos = new THREE.Vector3();
+                w.getWorldPosition(pos);
+                return { wheel: w, z: pos.z, pos: pos };
+            }).sort((a, b) => b.z - a.z); // b.z - a.z: larger Z comes first (rear wheels since car travels to -Z)
+            
+            if (sortedWheels.length >= 2) {
+                for (let k = 0; k < 2; k++) {
+                    spawnSmoke(sortedWheels[0].pos.x, sortedWheels[0].pos.y - 0.2, sortedWheels[0].pos.z);
+                    spawnSmoke(sortedWheels[1].pos.x, sortedWheels[1].pos.y - 0.2, sortedWheels[1].pos.z);
+                }
+            }
+        }
+
+        // Update active smoke particles
+        for (let i = smokeParticles.length - 1; i >= 0; i--) {
+            let p = smokeParticles[i];
+            p.mesh.position.addScaledVector(p.velocity, delta);
+            p.opacity -= delta * 1.5;
+            p.size += delta * 0.8;
+            
+            p.mesh.material.opacity = Math.max(0, p.opacity);
+            p.mesh.scale.setScalar(p.size / 0.12);
+            
+            if (p.opacity <= 0) {
+                scene.remove(p.mesh);
+                p.mesh.geometry.dispose();
+                p.mesh.material.dispose();
+                smokeParticles.splice(i, 1);
+            }
+        }
 
         renderer.render(scene, camera);
     }
