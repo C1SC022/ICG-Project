@@ -236,14 +236,14 @@
     <!-- GENERAL RULES -->
     <h2 class="general">Core Mechanics</h2>
     <p>
-      Race down a <strong>400-meter straight</strong>. Launch and shift gears perfectly to cover the distance in the shortest time.
+      Race down a <strong>400-meter straight</strong>. Launch and shift gears at the right moment to cover the distance in the shortest time.
     </p>
 
     <ul>
       <li><strong>Shift Window (Green Zone):</strong> Upshift when the tachometer needle is inside the green zone to maintain peak acceleration.</li>
-      <li><strong>Clutch Boost:</strong> Shifting perfectly right above the target target grants a brief horsepower surge.</li>
-      <li><strong>Rev Limiter:</strong> Don't hit the absolute redline limit! Fuel cut-off will activate, braking your car.</li>
-      <li><strong>Friction Penalties & Tire Smoke:</strong> Shifting too early or late reduces engine torque and activates active wheel brakes. This instantly spawns **thick gray smoke** behind your rear wheels.</li>
+      <li><strong>Clutch Boost:</strong> Shifting exactly at the target RPM grants a brief torque surge.</li>
+      <li><strong>Rev Limiter:</strong> Hitting the absolute redline activates fuel cut-off, braking your car.</li>
+      <li><strong>Penalties &amp; Tire Smoke:</strong> Shifting too early or too late reduces engine torque and activates wheel braking — thick grey smoke appears behind the rear wheels.</li>
     </ul>
 
     <!-- SOLO CONTROLS -->
@@ -252,53 +252,75 @@
       <div class="card">
         <div class="card-title" style="color: var(--neon-pink);">Desktop Controls</div>
         <ul>
-          <li><span class="key-badge">W</span> or <span class="key-badge">&uarr; Arrow Up</span> : <strong>Gas / Throttle</strong></li>
-          <li><span class="key-badge">D</span> or <span class="key-badge">&rarr; Arrow Right</span> : <strong>Gear Up</strong></li>
+          <li><span class="key-badge">W</span> : <strong>Gas / Throttle</strong> (during countdown only)</li>
+          <li><span class="key-badge">D</span> : <strong>Gear Up</strong> (once race starts)</li>
         </ul>
         <div class="card-title" style="color: var(--neon-pink); margin-top: 1rem;">Mobile Controls</div>
         <ul>
-          <li><strong>Tap & Hold Screen</strong> : Gas / Throttle</li>
-          <li><strong>Tap Screen</strong> : Gear Up</li>
+          <li><strong>Hold Screen</strong> : Rev the engine during countdown</li>
+          <li><strong>Tap Screen</strong> : Gear Up during race</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-title" style="color: #ffffff;">The Launch</div>
         <p style="font-size: 0.95rem; margin-bottom: 0;">
-          During the 5s countdown, rev the engine to keep the RPM needle inside the green <strong>Launch Window</strong>. Landing inside it at "GO!" grants instant, full grip. Missing it severely drags your launch.
+          During the 5-second countdown, hold throttle to keep the RPM needle inside the green <strong>Launch Window</strong>. Nailing it at GO! grants full grip from the start. Missing it causes a heavy penalty.
         </p>
+      </div>
+    </div>
+
+    <!-- CAR SELECTION -->
+    <h2 class="general">Car Selection</h2>
+    <div class="grid-controls">
+      <div class="card">
+        <div class="card-title" style="color: var(--neon-pink);">Player 1</div>
+        <ul>
+          <li><span class="key-badge">A</span> / <span class="key-badge">D</span> : <strong>Navigate cars</strong></li>
+          <li><span class="key-badge">S</span> : <strong>Select / Cancel</strong></li>
+          <li><strong>Mobile:</strong> Swipe left/right · Tap button</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color: var(--neon-cyan);">Player 2 (Multiplayer only)</div>
+        <ul>
+          <li><span class="key-badge">← →</span> : <strong>Navigate cars</strong></li>
+          <li><span class="key-badge">Enter</span> : <strong>Select / Cancel</strong></li>
+          <li><strong>Mobile:</strong> Swipe left/right · Tap button</li>
+        </ul>
       </div>
     </div>
 
     <!-- MULTIPLAYER CONTROLS -->
     <h2 class="multi">Multiplayer Mode</h2>
     <p>
-      Head-to-head split-screen racing on a single keyboard.
+      Head-to-head split-screen racing on a single keyboard or touch screen.
     </p>
 
     <div class="grid-controls">
       <div class="card">
-        <div class="card-title" style="color: var(--neon-pink);">Player 1 (Left Screen)</div>
+        <div class="card-title" style="color: var(--neon-pink);">Player 1 (Left Side)</div>
         <ul>
           <li><span class="key-badge">W</span> : <strong>Gas / Throttle</strong></li>
           <li><span class="key-badge">D</span> : <strong>Gear Up</strong></li>
-          <li><strong>Mobile:</strong> Tap/Hold Left Half of Screen</li>
+          <li><strong>Mobile:</strong> Hold/Tap Left Half of Screen</li>
         </ul>
       </div>
 
       <div class="card">
-        <div class="card-title" style="color: var(--neon-cyan);">Player 2 (Right Screen)</div>
+        <div class="card-title" style="color: var(--neon-cyan);">Player 2 (Right Side)</div>
         <ul>
-          <li><span class="key-badge">&uarr; Arrow Up</span> : <strong>Gas / Throttle</strong></li>
-          <li><span class="key-badge">&rarr; Arrow Right</span> : <strong>Gear Up</strong></li>
-          <li><strong>Mobile:</strong> Tap/Hold Right Half of Screen</li>
+          <li><span class="key-badge">↑ Arrow Up</span> : <strong>Gas / Throttle</strong></li>
+          <li><span class="key-badge">→ Arrow Right</span> : <strong>Gear Up</strong></li>
+          <li><strong>Mobile:</strong> Hold/Tap Right Half of Screen</li>
         </ul>
       </div>
     </div>
 
     <div class="highlight-box">
       <p>
-        <strong>Dynamic Camera & Police:</strong> The camera auto-adjusts its Field of View (FOV) based on the distance between players to maximize high-speed drama. Watch out for the blue and red flashing lights on the starting grid!
+        <strong>Dynamic Camera &amp; Police Lights:</strong> In multiplayer, the camera FOV auto-adjusts based on the gap between players. Blue and red police strobes follow the action throughout the race.
       </p>
     </div>
   </div>
