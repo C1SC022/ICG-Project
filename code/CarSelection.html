@@ -65,7 +65,7 @@
 
     .panel {
       position: relative;
-      padding: 1.5rem;
+      padding: 4.5rem 1.5rem 1.5rem 1.5rem;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -122,6 +122,70 @@
       line-height: 1.45;
       position: relative;
       z-index: 1;
+    }
+
+    .controls-hint {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+      margin: 0;
+    }
+
+    .controls-hint .hint-group {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .controls-hint .hint-sep {
+      color: rgba(255,255,255,0.2);
+      font-size: 0.8rem;
+      padding: 0 0.15rem;
+    }
+
+    .controls-hint .hint-label {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.38);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.6rem;
+      height: 1.6rem;
+      padding: 0 0.4rem;
+      border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(4px);
+      font-family: Orbitron, monospace;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+      white-space: nowrap;
+    }
+
+    .panel.left  kbd { border-color: rgba(255,45,149,0.35); color: var(--pink); box-shadow: 0 2px 8px rgba(255,45,149,0.15), inset 0 1px 0 rgba(255,255,255,0.1); }
+    .panel.right kbd { border-color: rgba(0,230,217,0.35); color: var(--cyan); box-shadow: 0 2px 8px rgba(0,230,217,0.12), inset 0 1px 0 rgba(255,255,255,0.1); }
+
+    @media (max-height: 520px) {
+      .controls-hint { gap: 0.3rem; }
+      kbd { min-width: 1.3rem; height: 1.3rem; font-size: 0.55rem; padding: 0 0.3rem; }
+      .controls-hint .hint-label { font-size: 0.62rem; }
+    }
+
+    @media (max-width: 720px) {
+      .controls-hint { gap: 0.35rem; }
+      kbd { min-width: 1.4rem; height: 1.4rem; font-size: 0.58rem; }
     }
 
     .viewer {
@@ -185,6 +249,32 @@
     .select-btn:hover {
       filter: brightness(1.2);
       transform: translateY(-2px);
+    }
+
+    .back-btn {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 50;
+      padding: 0.5rem 1.2rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      color: #9ab4d9;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      font-family: Orbitron, sans-serif;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateX(-3px);
     }
     
     .select-btn.selected {
@@ -252,9 +342,10 @@
     }
     .p2-mirror .car-chip { left: auto; right: 50%; transform: translateX(50%) scaleX(-1); }
     .p2-mirror .viewer-actions { left: auto; right: 50%; transform: translateX(50%) scaleX(-1); }
+    .p2-mirror .controls-hint { transform: scaleX(-1); }
 
     .split--multi .panel {
-        padding: 1rem;
+        padding: 4.5rem 1rem 1rem 1rem;
     }
     .split--multi h1, .split--multi h2 { font-size: 0.9rem; }
     .split--multi .subtitle { font-size: 0.75rem; }
@@ -302,8 +393,8 @@
         #p2-stats-panel { order: 4; }
     }
     @media (max-width: 720px) {
-        .panel {
-            padding: 1rem;
+        .panel, .split--multi .panel {
+            padding: 3.5rem 1rem 1rem 1rem;
             gap: 0.6rem;
         }
         .eyebrow {
@@ -354,8 +445,15 @@
     }
     @media (max-height: 520px) {
 
-        .panel {
-            padding: 0.75rem;
+      .back-btn {
+        top: 0.6rem;
+        left: 0.6rem;
+        font-size: 0.8rem;
+        padding: 0.35rem 0.85rem;
+      }
+
+        .panel, .split--multi .panel {
+            padding: 3.2rem 0.75rem 0.75rem 0.75rem;
             gap: 0.5rem;
         }
         .eyebrow {
@@ -404,8 +502,11 @@
             white-space: pre-wrap;
             position: fixed;
             inset: 0;
-            background: #050810;
-            color: #e6eef6;
+            background: #05060b;
+            color: #ffffff;
+            opacity: 1;
+            pointer-events: auto;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.4), 0 0 30px rgba(0, 230, 217, 0.15);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -424,12 +525,23 @@
   </style>
 </head>
 <body>
+  <button id="back-btn" class="back-btn" type="button">← Back</button>
   <div id="main-container" class="split">
     <!-- Player 1 Car View -->
     <section class="panel left" id="p1-viewer-panel">
       <p class="eyebrow">Player 1</p>
       <h1>Choose your car</h1>
-      <p class="subtitle">A/D to navigate, S to select</p>
+      <div class="controls-hint">
+        <div class="hint-group">
+          <kbd>A</kbd><kbd>D</kbd>
+          <span class="hint-label">Navigate</span>
+        </div>
+        <span class="hint-sep">·</span>
+        <div class="hint-group">
+          <kbd>S</kbd>
+          <span class="hint-label">Select</span>
+        </div>
+      </div>
 
       <div class="viewer">
         <div id="p1-webgl" class="webgl-output"></div>
@@ -460,7 +572,17 @@
     <section class="panel right hidden-solo p2-mirror" id="p2-viewer-panel" style="display:none">
       <p class="eyebrow">Player 2</p>
       <h1>Choose your car</h1>
-      <p class="subtitle">Arrows to navigate, Enter to select</p>
+      <div class="controls-hint">
+        <div class="hint-group">
+          <kbd>←</kbd><kbd>→</kbd>
+          <span class="hint-label">Navigate</span>
+        </div>
+        <span class="hint-sep">·</span>
+        <div class="hint-group">
+          <kbd>↵</kbd>
+          <span class="hint-label">Select / Cancel</span>
+        </div>
+      </div>
 
       <div class="viewer">
         <div id="p2-webgl" class="webgl-output"></div>
@@ -483,14 +605,8 @@
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
-    import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-    import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 
     window.GLTFLoader = GLTFLoader;
-    window.ColladaLoader = ColladaLoader;
-    window.OBJLoader = OBJLoader;
-    window.MTLLoader = MTLLoader;
 
     // Start loading models in the background
     window.AssetManager.loadAll();
@@ -541,6 +657,17 @@
         p.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
         const key = new THREE.DirectionalLight(0xffffff, 1.1);
         key.position.set(5, 9, 6);
+        key.castShadow = true;
+        key.shadow.mapSize.width = 1024;
+        key.shadow.mapSize.height = 1024;
+        key.shadow.camera.near = 0.5;
+        key.shadow.camera.far = 25;
+        const d = 6;
+        key.shadow.camera.left = -d;
+        key.shadow.camera.right = d;
+        key.shadow.camera.top = d;
+        key.shadow.camera.bottom = -d;
+        key.shadow.bias = -0.001;
         p.scene.add(key);
 
         const fill = new THREE.DirectionalLight(0x00e6d9, 0.45);
@@ -558,6 +685,7 @@
         new THREE.MeshStandardMaterial({ color: 0x06070b, roughness: 0.95, metalness: 0.1 })
       );
       base.position.y = -0.18;
+      base.receiveShadow = true;
       platform.add(base);
 
       const top = new THREE.Mesh(
@@ -565,6 +693,7 @@
         new THREE.MeshStandardMaterial({ color: 0x0c1221, roughness: 0.7, metalness: 0.15, emissive: 0x08182a, emissiveIntensity: 0.3 })
       );
       top.position.y = 0.02;
+      top.receiveShadow = true;
       platform.add(top);
 
       return platform;
@@ -725,13 +854,15 @@
         }
 
         // P2 Controls: Arrows
-        if (isMulti && !players.p2.selected) {
-            if (e.key === 'ArrowLeft') {
-                players.p2.index = (players.p2.index - 1 + carList.length) % carList.length;
-                updateCarUI('p2');
-            } else if (e.key === 'ArrowRight') {
-                players.p2.index = (players.p2.index + 1) % carList.length;
-                updateCarUI('p2');
+        if (isMulti) {
+            if (!players.p2.selected) {
+                if (e.key === 'ArrowLeft') {
+                    players.p2.index = (players.p2.index - 1 + carList.length) % carList.length;
+                    updateCarUI('p2');
+                } else if (e.key === 'ArrowRight') {
+                    players.p2.index = (players.p2.index + 1) % carList.length;
+                    updateCarUI('p2');
+                }
             }
             if (e.key === 'ArrowDown' || e.key === 'Enter') {
                 handleSelection('p2');
@@ -740,6 +871,9 @@
     });
 
     document.getElementById('p1-select').addEventListener('click', () => handleSelection('p1'));
+    document.getElementById('back-btn').addEventListener('click', () => {
+      window.location.href = '../index.html';
+    });
     if (isMulti) document.getElementById('p2-select').addEventListener('click', () => handleSelection('p2'));
 
     function animate() {

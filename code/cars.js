@@ -152,6 +152,8 @@ window.CarCatalog = {
               // Ensure geometry bounding box is up to date
               if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
               meshBounds.expandByObject(node); 
+              node.castShadow = true;
+              node.receiveShadow = true;
           }
       });
 
@@ -217,18 +219,53 @@ window.CarCatalog = {
 
         const n = node.name.toLowerCase();
         const materials = Array.isArray(node.material) ? node.material : [node.material];
-        const hasFrontMat = materials.some(m => m.name && (m.name.toLowerCase().indexOf('glass') >= 0 || m.name.toLowerCase().indexOf('headlight') >= 0));
-        const hasRearMat = materials.some(m => m.name && (m.name.toLowerCase().indexOf('red_light') >= 0 || m.name.toLowerCase().indexOf('taillight') >= 0));
+        const materialNames = materials
+          .map((m) => (m && m.name ? m.name.toLowerCase() : ''))
+          .filter(Boolean);
 
-        // Updated search terms for Dodge Charger and other models
-        const isFront = hasFrontMat || n.indexOf('farol_f') >= 0 || n.indexOf('headlight') >= 0;
-        const isRear = hasRearMat || n.indexOf('farol_b') >= 0 || n.indexOf('taillight') >= 0 || n.indexOf('arka') >= 0;
+        if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+        const localCenter = node.geometry.boundingBox.getCenter(new THREE.Vector3());
+        node.updateMatrixWorld(true);
+        const carLocalPos = localCenter.clone().applyMatrix4(node.matrixWorld);
+
+        const hasFrontMat = materialNames.some((mn) =>
+          mn.indexOf('headlight') >= 0 ||
+          mn.indexOf('farol') >= 0 ||
+          mn.indexOf('farois') >= 0 ||
+          mn.indexOf('front_light') >= 0
+        );
+        const hasRearMat = materialNames.some((mn) =>
+          mn.indexOf('red_light') >= 0 ||
+          mn.indexOf('taillight') >= 0 ||
+          mn.indexOf('rear_light') >= 0 ||
+          mn.indexOf('brake') >= 0
+        );
+
+        const nameLooksLikeLight =
+          n.indexOf('farol') >= 0 ||
+          n.indexOf('farois') >= 0 ||
+          n.indexOf('headlight') >= 0 ||
+          n.indexOf('taillight') >= 0 ||
+          n.indexOf('light') >= 0;
+        const hasFrontTag =
+          n.indexOf('farol_f') >= 0 ||
+          n.indexOf('front') >= 0 ||
+          n.indexOf('frente') >= 0 ||
+          n.indexOf('headlight') >= 0;
+        const hasRearTag =
+          n.indexOf('farol_b') >= 0 ||
+          n.indexOf('rear') >= 0 ||
+          n.indexOf('back') >= 0 ||
+          n.indexOf('trase') >= 0 ||
+          n.indexOf('taillight') >= 0 ||
+          n.indexOf('arka') >= 0;
+
+        // If name/material says "light" but not explicitly front/rear, infer by Z side.
+        const zIsFront = carLocalPos.z >= 0;
+        const isFront = hasFrontTag || hasFrontMat || (nameLooksLikeLight && !hasRearTag && zIsFront);
+        const isRear = hasRearTag || hasRearMat || (nameLooksLikeLight && !hasFrontTag && !zIsFront);
 
         if (isFront) {
-          if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
-          const localCenter = node.geometry.boundingBox.getCenter(new THREE.Vector3());
-          node.updateMatrixWorld(true);
-          const carLocalPos = localCenter.clone().applyMatrix4(node.matrixWorld);
           frontLightPositions.push(carLocalPos);
         }
 
@@ -292,24 +329,73 @@ window.CarCatalog = {
         rightPos = new THREE.Vector3(0.45, 0.42, zBumper);
       }
 
-      // Configured for a premium headlight beam that starts bright and diffuses smoothly over 40 meters
-      const frontIntensity = mode === 'preview' ? 35 : 65;
-      const frontDistance = 40;
-      const frontAngle = 0.52; // Focused beam
-      const frontPenumbra = 0.85; // High diffusion at the edges
-      const frontDecay = 1.6; // Soft, smooth physical decay
+      // Convert detected world positions into root-local coordinates so we reliably
+      // place lights relative to the car regardless of model orientation.
+      leftPos = root.worldToLocal(leftPos.clone());
+      rightPos = root.worldToLocal(rightPos.clone());
+
+      // Force the Z of headlights to the front-most Z of the normalized model bounds
+      // to avoid placing lights inside/behind the car when models have inverted axes.
+      const modelFrontZ = normBounds.max.z;
+      const clampFrontZ = modelFrontZ - 0.12; // a little inset from the bumper
+      leftPos.z = clampFrontZ;
+      rightPos.z = clampFrontZ;
+
+      // Make sure headlights are not below the model ground
+      const minY = normBounds.min.y + 0.18;
+      leftPos.y = Math.max(leftPos.y, minY);
+      rightPos.y = Math.max(rightPos.y, minY);
+
+      const frontCenterZ = (leftPos.z + rightPos.z) / 2;
+      const frontDir = frontCenterZ >= 0 ? 1 : -1;
+
+      // Brighter, wider and softer-decay beams (closer to the old highly visible setup)
+      const frontIntensity = mode === 'preview' ? 2.5 : 4.5;
+      const frontDistance = mode === 'preview' ? 6 : 18;
+      const frontAngle = 1.08;
+      const frontPenumbra = 0.5;
+      const frontDecay = 0.25;
+      const headlightNudgeForward = -0.05;
+      const headlightNudgeUp = 0.01;
 
       const leftLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, frontAngle, frontPenumbra, frontDecay);
-      leftLight.position.copy(leftPos);
-      leftLight.target.position.set(leftPos.x, leftPos.y - 0.4, leftPos.z + 5); // Aimed slightly down and forward
+      leftLight.position.set(leftPos.x, leftPos.y + headlightNudgeUp, leftPos.z + frontDir * headlightNudgeForward);
+      leftLight.target.position.set(leftPos.x, leftPos.y - 0.2, leftPos.z + frontDir * (mode === 'preview' ? 3.5 : 5.5));
       root.add(leftLight);
       root.add(leftLight.target);
 
       const rightLight = new THREE.SpotLight(0xfff3cc, frontIntensity, frontDistance, frontAngle, frontPenumbra, frontDecay);
-      rightLight.position.copy(rightPos);
-      rightLight.target.position.set(rightPos.x, rightPos.y - 0.4, rightPos.z + 5); // Aimed slightly down and forward
+      rightLight.position.set(rightPos.x, rightPos.y + headlightNudgeUp, rightPos.z + frontDir * headlightNudgeForward);
+      rightLight.target.position.set(rightPos.x, rightPos.y - 0.2, rightPos.z + frontDir * (mode === 'preview' ? 3.5 : 5.5));
       root.add(rightLight);
       root.add(rightLight.target);
+
+      // Small local glow so headlights remain visible even when beam angle/terrain hides the cone.
+      const leftGlow = new THREE.PointLight(0xfff0c2, mode === 'preview' ? 0.3 : 0.5, mode === 'preview' ? 3 : 5, 1.1);
+      leftGlow.position.set(leftPos.x, leftPos.y + headlightNudgeUp, leftPos.z + frontDir * headlightNudgeForward);
+      root.add(leftGlow);
+
+      const rightGlow = new THREE.PointLight(0xfff0c2, mode === 'preview' ? 0.3 : 0.5, mode === 'preview' ? 3 : 5, 1.1);
+      rightGlow.position.set(rightPos.x, rightPos.y + headlightNudgeUp, rightPos.z + frontDir * headlightNudgeForward);
+      root.add(rightGlow);
+
+      // Optional debug helpers: call createCarMesh with { debugLights: true }
+      if (options.debugLights) {
+        try {
+          const slhL = new THREE.SpotLightHelper(leftLight);
+          const slhR = new THREE.SpotLightHelper(rightLight);
+          const plhL = new THREE.PointLightHelper(leftGlow, 0.06);
+          const plhR = new THREE.PointLightHelper(rightGlow, 0.06);
+          root.add(slhL);
+          root.add(slhR);
+          root.add(plhL);
+          root.add(plhR);
+          // log positions for quick inspection
+          console.log('CarCatalog headlights', name, { leftPos, rightPos, modelFrontZ });
+        } catch (e) {
+          // helpers might not be available in some minimal builds; ignore
+        }
+      }
 
       if (rearMesh && mode === 'preview') {
         const box = getLightAnchorBox(rearMesh);

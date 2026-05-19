@@ -1,8 +1,14 @@
-@import url(https://fonts.googleapis.com/css?family=Coda:400|Roboto+Mono:400,400italic);
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@400;700&family=Coda:400&display=swap');
+
+:root {
+  --neon-cyan: #00e6d9;
+  --neon-pink: #ff2d95;
+  --bg-dark: #05060a;
+}
 
 *{box-sizing:border-box}
 
-.dashboard{position:fixed;bottom:1rem;display:flex;gap:0.75rem;align-items:center;padding:0.5rem 0.75rem;font-family:'Coda',cursive;z-index:20;transition: all 0.5s ease}
+.dashboard{position:fixed;bottom:1rem;display:flex;gap:0.75rem;align-items:center;padding:0.5rem 0.75rem;font-family:'Orbitron',sans-serif;z-index:20;transition: all 0.5s ease}
 .dashboard--p1{left:50%;transform:translateX(-50%)}
 .dashboard--split-left{left:0 !important;transform:none !important}
 .dashboard--split-right{right:0 !important;transform:none !important}
@@ -20,7 +26,7 @@
 .label-value{top:49%;line-height:1.05}
 .label-value div,.label-value span{font-size:0}
 .meter--big-label .label-value div{font-size:2.1rem}
-.label-value div{font-family:'Roboto Mono',monospace;font-style:italic;font-weight:700;letter-spacing:0.01em}
+.label-value div{font-family:'Orbitron',sans-serif;font-style:normal;font-weight:700;letter-spacing:0.01em}
 .meter--big-label .label-value span{font-size:0.72rem;line-height:0.8;letter-spacing:0.08em}
 .label-value span{display:block;position:absolute;left:50%;top:100%;margin-top:0.02rem;transform:translate3d(-50%,0,0);white-space:nowrap}
 
@@ -50,28 +56,136 @@
 
 .meter--gear{width:3.2rem;height:3.2rem;margin:0;margin-left:-1rem;margin-right:-1rem;box-shadow:inset 0 3px 6px rgba(0,0,0,0.16), inset 0 3px 6px rgba(0,0,0,0.23)}
 .meter--gear:before{width:calc(100% + 28%);height:calc(100% + 28%);left:-14%;top:-14%;bottom:-14%}
-.meter--gear div{font-size:1rem;text-align:center;line-height:3.2rem;font-family:'Roboto Mono',monospace;font-style:italic;font-weight:700;color:#555}
+.meter--gear div{font-size:1rem;text-align:center;line-height:3.2rem;font-family:'Orbitron',sans-serif;font-style:normal;font-weight:700;color:#555}
 .meter--gear div.redzone{color:#e30}
 
 
 body{margin:0;min-height:100vh;background:#050810;text-align:center;overflow:hidden}
 
-.race-overlay{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:30;color:#f3f7ff;font-family:'Roboto Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;text-shadow:0 6px 18px rgba(0,0,0,0.6);pointer-events:none}
-.race-overlay.hidden{display:none}
+/* ── Race Overlays ──────────────────────────────────────────────── */
+.race-overlay {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  pointer-events: none;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.race-overlay.hidden { display: none; }
 
-.race-overlay--countdown{font-size:clamp(3rem,12vw,6rem);font-weight:700;line-height:1;padding:0.4rem 1.2rem;border:1px solid rgba(255,255,255,0.3);border-radius:0.7rem;background:linear-gradient(160deg,rgba(4,11,28,0.86),rgba(11,24,61,0.68));box-shadow:0 20px 34px rgba(0,0,0,0.45)}
+.race-overlay--countdown {
+  font-size: clamp(4rem, 14vw, 7rem);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--neon-cyan);
+  text-shadow:
+    0 0 20px rgba(0,230,217,0.7),
+    0 0 60px rgba(0,230,217,0.3),
+    0 4px 24px rgba(0,0,0,0.8);
+  padding: 0.3rem 1rem;
+  border: 1px solid rgba(0,230,217,0.22);
+  border-radius: 12px;
+  background: rgba(0,10,12,0.75);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 0 30px rgba(0,230,217,0.12),
+    0 20px 40px rgba(0,0,0,0.6);
+  animation: countdownPulse 0.9s ease-out;
+}
+@keyframes countdownPulse {
+  from { transform: translate(-50%, -50%) scale(1.18); opacity: 0.5; }
+  to   { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+}
 
-.race-overlay--finish{top:18%;min-width:min(82vw,420px);padding:1rem 1.2rem;border:1px solid rgba(255,255,255,0.24);border-radius:0.75rem;background:linear-gradient(165deg,rgba(6,18,44,0.9),rgba(8,29,73,0.75));box-shadow:0 22px 36px rgba(0,0,0,0.5)}
-.race-overlay__title{font-size:0.95rem;opacity:0.8}
-.race-overlay__winner{font-size:1.4rem;font-weight:700;color:var(--pink);margin-top:0.5rem;text-shadow:0 0 10px rgba(255,45,149,0.4)}
-.race-overlay__time{margin-top:0.35rem;font-size:clamp(1.8rem,5.6vw,2.6rem);font-weight:700;color:#8effc2}
+.race-overlay--finish {
+  top: 18%;
+  min-width: min(82vw, 400px);
+  padding: 1.4rem 1.8rem;
+  border: 1px solid rgba(0,230,217,0.18);
+  border-radius: 14px;
+  background: rgba(4,8,18,0.88);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 0 40px rgba(0,230,217,0.08),
+    0 24px 48px rgba(0,0,0,0.7);
+  animation: slideDown 0.45s cubic-bezier(.22,.68,0,1.2);
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translate(-50%, calc(-50% - 18px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+.race-overlay__title {
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 0.6rem;
+}
+.race-overlay__winner {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--neon-pink);
+  text-shadow: 0 0 14px rgba(255,45,149,0.5), 0 0 40px rgba(255,45,149,0.2);
+  margin-bottom: 0.4rem;
+}
+.race-overlay__time {
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  font-weight: 900;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 16px rgba(0,230,217,0.55), 0 0 40px rgba(0,230,217,0.2);
+}
 
-
-.race-controls{position:fixed;right:1rem;top:1rem;z-index:35;display:flex;gap:0.5rem}
-.race-btn{appearance:none;border:1px solid rgba(255,255,255,0.32);background:linear-gradient(160deg,rgba(21,44,96,0.88),rgba(9,24,58,0.78));color:#eef5ff;font-family:'Roboto Mono',monospace;font-size:0.85rem;letter-spacing:0.04em;text-transform:uppercase;padding:0.5rem 0.75rem;border-radius:0.45rem;cursor:pointer;transition:transform .14s ease,background .14s ease,border-color .14s ease}
-.race-btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,0.5)}
-.race-btn:active{transform:translateY(0)}
-.race-btn--secondary{background:linear-gradient(160deg,rgba(56,57,62,0.9),rgba(23,24,28,0.8))}
+/* ── Race Controls (top-right buttons) ─────────────────────────── */
+.race-controls {
+  position: fixed;
+  right: 1rem;
+  top: 1rem;
+  z-index: 35;
+  display: flex;
+  gap: 0.5rem;
+}
+.race-btn {
+  appearance: none;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0,230,217,0.22);
+  background: rgba(4,8,18,0.82);
+  color: var(--neon-cyan);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.race-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0,230,217,0.5);
+  box-shadow: 0 0 16px rgba(0,230,217,0.18), 0 6px 20px rgba(0,0,0,0.5);
+}
+.race-btn:active { transform: translateY(0); }
+.race-btn--secondary {
+  border-color: rgba(255,255,255,0.1);
+  color: rgba(200,215,235,0.65);
+}
+.race-btn--secondary:hover {
+  border-color: rgba(255,255,255,0.25);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.btn-volume {
+  border-color: rgba(255,45,149,0.2);
+  color: var(--neon-pink);
+}
+.btn-volume:hover {
+  border-color: rgba(255,45,149,0.5);
+  box-shadow: 0 0 16px rgba(255,45,149,0.18), 0 6px 20px rgba(0,0,0,0.5);
+}
 
 @media (max-height: 520px) {
 	.race-overlay{top:14%}

@@ -51,17 +51,15 @@
 <script src="cars.js"></script>
 <script src="assets.js"></script>
 <script src="sound.js"></script>
+<script src="shared/constants.js"></script>
+<script src="shared/meter.js"></script>
+<script src="shared/physics.js"></script>
+<script src="shared/scene.js"></script>
 <script type="module">
 	import * as THREE from 'three';
 	import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-	import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
-	import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-	import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 	window.THREE = THREE;
 	window.GLTFLoader = GLTFLoader;
-	window.ColladaLoader = ColladaLoader;
-	window.OBJLoader = OBJLoader;
-	window.MTLLoader = MTLLoader;
 
 	const urlParams = new URLSearchParams(window.location.search);
 	const isMulti = urlParams.get('mode') === 'multi';
