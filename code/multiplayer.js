@@ -362,6 +362,9 @@ function initMultiApp() {
 
     window.addEventListener('keydown', e => {
         const k = e.key.toLowerCase();
+        if (k === 'w' || e.key === 'ArrowUp') {
+            window.SoundManager.resume();
+        }
         if (k === 'w') p1.isAccelerating = true;
         if (k === 'd') p1.gearUp();
         if (e.key === 'ArrowUp') p2.isAccelerating = true;
@@ -373,6 +376,7 @@ function initMultiApp() {
     });
 
     function handleTouchStart(clientX) {
+        window.SoundManager.resume();
         if (clientX < window.innerWidth / 2) {
             if (raceState === 'racing') p1.gearUp(); else p1.isAccelerating = true;
         } else {

@@ -60,6 +60,7 @@
 .meter--gear div.redzone{color:#e30}
 
 
+html { background-color: var(--bg-dark); }
 body{margin:0;min-height:100vh;background:#050810;text-align:center;overflow:hidden}
 
 /* ── Race Overlays ──────────────────────────────────────────────── */

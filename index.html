@@ -16,6 +16,8 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html { background-color: var(--bg); }
+
     html, body {
       height: 100%;
       font-family: 'Rajdhani', sans-serif;
@@ -285,7 +287,6 @@
   <script type="module">
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     window.GLTFLoader = GLTFLoader;
-    if (window.AssetManager) window.AssetManager.loadAll();
   </script>
 </body>
 </html>

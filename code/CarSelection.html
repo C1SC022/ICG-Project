@@ -31,6 +31,7 @@
 
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
+    html { background-color: var(--bg1); }
     body {
       font-family: Rajdhani, system-ui, sans-serif;
       color: var(--text);
@@ -607,9 +608,6 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     window.GLTFLoader = GLTFLoader;
-
-    // Start loading models in the background
-    window.AssetManager.loadAll();
 
     const urlParams = new URLSearchParams(window.location.search);
     const isMulti = urlParams.get('mode') === 'multi';
