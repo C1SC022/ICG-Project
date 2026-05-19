@@ -264,7 +264,7 @@ function initApp() {
     }
     function handleRelease() { if (raceState !== 'racing') isAccelerating = false; }
 
-    window.addEventListener('touchstart', e => { if (isUITarget(e)) return; e.preventDefault(); handlePress(); }, { passive: false });
+    window.addEventListener('touchstart', e => { if (isUITarget(e)) return; e.preventDefault(); window.SoundManager.init(); handlePress(); }, { passive: false });
     window.addEventListener('touchend',   e => { if (isUITarget(e)) return; handleRelease(); }, { passive: false });
     window.addEventListener('touchcancel', () => handleRelease(), { passive: false });
     window.addEventListener('mousedown', e => { if (isUITarget(e)) return; handlePress(); });

@@ -426,13 +426,15 @@ function initMultiApp() {
     });
 
     function handleTouchStart(clientX) {
-        window.SoundManager.resume();
         if (clientX < window.innerWidth / 2) {
-            if (raceState === 'racing') p1.gearUp(); else p1.isAccelerating = true;
+            if (raceState === 'racing') p1.gearUp(); 
+            else p1.isAccelerating = true;
         } else {
-            if (raceState === 'racing') p2.gearUp(); else p2.isAccelerating = true;
+            if (raceState === 'racing') p2.gearUp(); 
+            else p2.isAccelerating = true;
         }
     }
+
     function handleTouchEnd(clientX) {
         if (clientX < window.innerWidth / 2) p1.isAccelerating = false;
         else p2.isAccelerating = false;
@@ -441,22 +443,28 @@ function initMultiApp() {
     window.addEventListener('touchstart', e => {
         if (isUITarget(e)) return;
         e.preventDefault();
-        window.SoundManager.resume();
         for (const t of e.changedTouches) handleTouchStart(t.clientX);
     }, { passive: false });
+
     window.addEventListener('touchend', e => {
         if (isUITarget(e)) return;
         for (const t of e.changedTouches) handleTouchEnd(t.clientX);
     }, { passive: false });
+
     window.addEventListener('touchcancel', e => {
+        if (isUITarget(e)) return;
         for (const t of e.changedTouches) handleTouchEnd(t.clientX);
     }, { passive: false });
+
     window.addEventListener('mousedown', e => {
         if (isUITarget(e)) return;
-        window.SoundManager.resume();
         handleTouchStart(e.clientX);
     });
-    window.addEventListener('mouseup',   e => { if (isUITarget(e)) return; handleTouchEnd(e.clientX); });
+
+    window.addEventListener('mouseup', e => {
+        if (isUITarget(e)) return;
+        handleTouchEnd(e.clientX);
+    });
 
     document.getElementById('restartRaceBtn').onclick = () => startCountdown();
     document.getElementById('menuRaceBtn').onclick = () => window.location.href = '../index.html';
