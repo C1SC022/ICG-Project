@@ -65,6 +65,45 @@
     .btn-rules:active {
       transform: scale(0.98);
     }
+    @media (max-width: 720px) {
+      .split-container {
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .panel {
+        padding: 1.5rem;
+        flex: 1;
+        justify-content: center;
+      }
+      .panel.left {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .panel.right {
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.03);
+      }
+      h2 {
+        font-size: 1.8rem;
+      }
+      p {
+        max-width: 28ch;
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+      }
+      .btn-start {
+        padding: 0.75rem 1.2rem;
+        font-size: 0.9rem;
+      }
+      .rules-btn-container {
+        bottom: 2rem;
+      }
+      .btn-rules {
+        padding: 0.5rem 1.1rem;
+        font-size: 0.8rem;
+      }
+    }
   </style>
 </head>
 <body>

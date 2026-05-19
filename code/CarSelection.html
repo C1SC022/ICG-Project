@@ -283,6 +283,74 @@
         .split--multi { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: auto; overflow: auto; }
         .split--multi .panel { height: 50vh; }
     }
+    @media (max-width: 720px) {
+        .split {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: 1.15fr 0.85fr !important;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .split--multi {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: repeat(4, 50vh) !important;
+            height: 200vh;
+            overflow-y: auto;
+        }
+        #p1-viewer-panel { order: 1; }
+        #p1-stats-panel { order: 2; }
+        #p2-viewer-panel { order: 3; }
+        #p2-stats-panel { order: 4; }
+
+        .panel {
+            padding: 1rem;
+            gap: 0.6rem;
+        }
+        .eyebrow {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+        }
+        h1 {
+            font-size: 1.3rem;
+        }
+        h2 {
+            font-size: 1.1rem;
+        }
+        .subtitle {
+            font-size: 0.8rem;
+            line-height: 1.35;
+        }
+        .viewer {
+            border-radius: 12px;
+        }
+        .car-chip {
+            bottom: 3.2rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .select-btn {
+            padding: 0.4rem 1rem;
+            font-size: 0.75rem;
+        }
+        .stats {
+            gap: 0.4rem;
+        }
+        .stat-card {
+            padding: 0.5rem 0.7rem;
+            border-radius: 10px;
+        }
+        .stat-label {
+            font-size: 0.65rem;
+        }
+        .stat-value {
+            font-size: 0.75rem;
+        }
+        .bar {
+            height: 0.4rem;
+        }
+        .ready-overlay h2 {
+            font-size: 2.2rem;
+        }
+    }
   </style>
 </head>
 <body>
@@ -500,6 +568,54 @@
 
     initPlayer('p1', 'p1-webgl');
     if (isMulti) initPlayer('p2', 'p2-webgl');
+
+    // Swipe navigation for mobile
+    function setupSwipe(panelId, pId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+
+        let startX = 0;
+        let startY = 0;
+
+        panel.addEventListener('touchstart', (e) => {
+            if (players[pId].selected) return;
+            if (e.target.closest && (e.target.closest('.select-btn') || e.target.closest('button'))) {
+                return;
+            }
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+
+        panel.addEventListener('touchend', (e) => {
+            if (players[pId].selected) return;
+            if (e.target.closest && (e.target.closest('.select-btn') || e.target.closest('button'))) {
+                return;
+            }
+
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+
+            if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX < 0) {
+                    players[pId].index = (players[pId].index + 1) % carList.length;
+                    updateCarUI(pId);
+                } else {
+                    players[pId].index = (players[pId].index - 1 + carList.length) % carList.length;
+                    updateCarUI(pId);
+                }
+            }
+        }, { passive: true });
+    }
+
+    setupSwipe('p1-viewer-panel', 'p1');
+    setupSwipe('p1-stats-panel', 'p1');
+    if (isMulti) {
+        setupSwipe('p2-viewer-panel', 'p2');
+        setupSwipe('p2-stats-panel', 'p2');
+    }
 
     window.addEventListener('keydown', (e) => {
         // P1 Controls: A/D

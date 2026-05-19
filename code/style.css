@@ -78,4 +78,55 @@ body{margin:0;min-height:100vh;background:#050810;text-align:center;overflow:hid
 	.race-overlay--finish{top:12%}
 	.race-controls{right:0.6rem;top:0.6rem;gap:0.4rem}
 	.race-btn{font-size:0.74rem;padding:0.45rem 0.6rem}
+
+	.dashboard {
+		bottom: 0.5rem;
+		gap: 0.4rem;
+		padding: 0.25rem 0.5rem;
+	}
+	.meter {
+		width: 7.5rem;
+		height: 7.5rem;
+		margin: 0 0.2rem;
+	}
+	.needle {
+		height: 56px;
+	}
+	.needle:before {
+		border-width: 0 3px 56px 0;
+	}
+	.needle:after {
+		border-width: 56px 3px 0 0;
+	}
+	.meter--gear {
+		width: 2.2rem;
+		height: 2.2rem;
+		margin-left: -0.6rem;
+		margin-right: -0.6rem;
+	}
+	.meter--gear div {
+		line-height: 2.2rem;
+		font-size: 0.8rem;
+	}
+	.meter--big-label .label-value div {
+		font-size: 1.4rem;
+	}
+	.meter--big-label .label-value span {
+		font-size: 0.55rem;
+	}
+	.label-unit {
+		top: 82%;
+	}
+	.label-unit div {
+		font-size: 0.75rem;
+	}
+	.label-unit span {
+		font-size: 0.5rem;
+	}
+	.grad {
+		font-size: 0.65rem;
+	}
+	.meter--rpm .grad {
+		font-size: 0.9rem;
+	}
 }
