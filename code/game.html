@@ -81,6 +81,7 @@
 		function() {
 			if (loadingOverlay) {
 				loadingOverlay.style.opacity = '0';
+				loadingOverlay.style.pointerEvents = 'none';
 				setTimeout(() => loadingOverlay.style.display = 'none', 500);
 			}
 			const gameScript = document.createElement('script');

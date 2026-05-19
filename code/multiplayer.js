@@ -144,12 +144,62 @@ function initMultiApp() {
     let smokeParticles = [];
     const pools = { roadSegments: [], streetLightPairs: [], decorations: [] };
 
+    function startCountdown() {
+        raceState = 'countdown';
+        countdownLeft = RACE_COUNTDOWN_SECONDS;
+        raceElapsedTime = 0;
+        
+        // Clear smoke particles from scene
+        smokeParticles.forEach(p => {
+            scene.remove(p.mesh);
+            p.mesh.geometry.dispose();
+            p.mesh.material.dispose();
+        });
+        smokeParticles.length = 0;
+
+        // Reset player 1
+        p1.gear = 0;
+        p1.speed = 0;
+        p1.rpm = p1.spec.engine.rpmIdle;
+        p1.travelZ = 0;
+        p1.isAccelerating = false;
+        p1.finished = false;
+        p1.finishTime = 0;
+        p1.clutchTimer = 0;
+        p1.clutchTorqueBoost = 0;
+        p1.penaltyBrakeTimer = 0;
+        p1.penaltyBrakeLevel = 0;
+        p1.penaltyTorqueFactor = 1;
+        if (p1.gearEl) { p1.gearEl.innerHTML = 'N'; p1.gearEl.classList.remove('redzone'); }
+
+        // Reset player 2
+        p2.gear = 0;
+        p2.speed = 0;
+        p2.rpm = p2.spec.engine.rpmIdle;
+        p2.travelZ = 0;
+        p2.isAccelerating = false;
+        p2.finished = false;
+        p2.finishTime = 0;
+        p2.clutchTimer = 0;
+        p2.clutchTorqueBoost = 0;
+        p2.penaltyBrakeTimer = 0;
+        p2.penaltyBrakeLevel = 0;
+        p2.penaltyTorqueFactor = 1;
+        if (p2.gearEl) { p2.gearEl.innerHTML = 'N'; p2.gearEl.classList.remove('redzone'); }
+
+        document.getElementById('raceFinish').classList.add('hidden');
+        document.getElementById('raceCountdown').classList.remove('hidden');
+        document.getElementById('raceCountdown').textContent = Math.ceil(countdownLeft);
+
+        window.GameScene.buildRoadAndLights(scene, pools);
+
+        window.SoundManager.getPlayer('p1').play(p1.rpm, p1.speed);
+        window.SoundManager.getPlayer('p2').play(p2.rpm, p2.speed);
+    }
+
     function checkAllAssetsLoaded() {
         if (assetsLoaded.p1Car && assetsLoaded.p2Car && raceState === 'loading') {
-            raceState = 'countdown';
-            document.getElementById('raceCountdown').classList.remove('hidden');
-            window.SoundManager.getPlayer('p1').play(p1.rpm, p1.speed);
-            window.SoundManager.getPlayer('p2').play(p2.rpm, p2.speed);
+            startCountdown();
         }
     }
 
@@ -362,6 +412,9 @@ function initMultiApp() {
 
     window.addEventListener('keydown', e => {
         const k = e.key.toLowerCase();
+        if (k === 'w' || e.key === 'ArrowUp') {
+            window.SoundManager.resume();
+        }
         if (k === 'w') p1.isAccelerating = true;
         if (k === 'd') p1.gearUp();
         if (e.key === 'ArrowUp') p2.isAccelerating = true;
@@ -373,6 +426,7 @@ function initMultiApp() {
     });
 
     function handleTouchStart(clientX) {
+        window.SoundManager.resume();
         if (clientX < window.innerWidth / 2) {
             if (raceState === 'racing') p1.gearUp(); else p1.isAccelerating = true;
         } else {
@@ -387,6 +441,7 @@ function initMultiApp() {
     window.addEventListener('touchstart', e => {
         if (isUITarget(e)) return;
         e.preventDefault();
+        window.SoundManager.resume();
         for (const t of e.changedTouches) handleTouchStart(t.clientX);
     }, { passive: false });
     window.addEventListener('touchend', e => {
@@ -396,10 +451,14 @@ function initMultiApp() {
     window.addEventListener('touchcancel', e => {
         for (const t of e.changedTouches) handleTouchEnd(t.clientX);
     }, { passive: false });
-    window.addEventListener('mousedown', e => { if (isUITarget(e)) return; handleTouchStart(e.clientX); });
+    window.addEventListener('mousedown', e => {
+        if (isUITarget(e)) return;
+        window.SoundManager.resume();
+        handleTouchStart(e.clientX);
+    });
     window.addEventListener('mouseup',   e => { if (isUITarget(e)) return; handleTouchEnd(e.clientX); });
 
-    document.getElementById('restartRaceBtn').onclick = () => window.location.reload();
+    document.getElementById('restartRaceBtn').onclick = () => startCountdown();
     document.getElementById('menuRaceBtn').onclick = () => window.location.href = '../index.html';
 
     // ── Boot ──────────────────────────────────────────────────────────────────
