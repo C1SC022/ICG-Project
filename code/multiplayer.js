@@ -910,6 +910,53 @@ function initMultiApp() {
         if (e.key.toLowerCase() === 'w') p1.isAccelerating = false; if (e.key === 'ArrowUp') p2.isAccelerating = false;
     });
 
+    // Touch controls for multiplayer (Split screen)
+    function handleMultiStart(clientX) {
+        if (clientX < window.innerWidth / 2) {
+            if (raceState === 'racing') p1.gearUp();
+            else p1.isAccelerating = true;
+        } else {
+            if (raceState === 'racing') p2.gearUp();
+            else p2.isAccelerating = true;
+        }
+    }
+
+    function handleMultiEnd(clientX) {
+        if (clientX < window.innerWidth / 2) p1.isAccelerating = false;
+        else p2.isAccelerating = false;
+    }
+
+    window.addEventListener('touchstart', (e) => {
+        if (e.target.closest && (e.target.closest('#restartRaceBtn') || e.target.closest('#menuRaceBtn') || e.target.closest('.btn-volume') || e.target.closest('.race-btn'))) return;
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            handleMultiStart(e.changedTouches[i].clientX);
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+        if (e.target.closest && (e.target.closest('#restartRaceBtn') || e.target.closest('#menuRaceBtn') || e.target.closest('.btn-volume') || e.target.closest('.race-btn'))) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            handleMultiEnd(e.changedTouches[i].clientX);
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchcancel', (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            handleMultiEnd(e.changedTouches[i].clientX);
+        }
+    }, { passive: false });
+
+    window.addEventListener('mousedown', (e) => {
+        if (e.target.closest && (e.target.closest('#restartRaceBtn') || e.target.closest('#menuRaceBtn') || e.target.closest('.btn-volume') || e.target.closest('.race-btn'))) return;
+        handleMultiStart(e.clientX);
+    });
+
+    window.addEventListener('mouseup', (e) => {
+        if (e.target.closest && (e.target.closest('#restartRaceBtn') || e.target.closest('#menuRaceBtn') || e.target.closest('.btn-volume') || e.target.closest('.race-btn'))) return;
+        handleMultiEnd(e.clientX);
+    });
+
     document.getElementById('restartRaceBtn').onclick = () => window.location.reload();
     document.getElementById('menuRaceBtn').onclick = () => window.location.href = '../index.html';
 

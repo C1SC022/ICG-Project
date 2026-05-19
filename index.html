@@ -104,6 +104,29 @@
         font-size: 0.8rem;
       }
     }
+    @media screen and (max-device-width: 920px) and (orientation: portrait) {
+      body::after {
+        content: "↺\A Please rotate your device to landscape mode";
+        white-space: pre-wrap;
+        position: fixed;
+        inset: 0;
+        background: #050810;
+        color: #e6eef6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.4rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-align: center;
+        padding: 2rem;
+        z-index: 999999;
+        line-height: 2;
+      }
+    }
   </style>
 </head>
 <body>
