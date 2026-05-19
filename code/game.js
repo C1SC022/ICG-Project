@@ -18,7 +18,7 @@ let Meter = function Meter($elm, config) {
 	let steps = (config.valueMax - config.valueMin) / config.valueStep,
 			angleStep = (config.angleMax - config.angleMin) / steps;
 	
-	let margin = 10; // in %
+	let margin = 15; // in %
 	let angle = 0; // in degrees
 	
 	let value2angle = function(value) {
@@ -304,9 +304,7 @@ function initApp() {
 		else if (key === 's' || e.keyCode == '40') { // S or down arrow
 			isBraking = true;
 		}
-		else if (key === 'a' || e.keyCode == '37') { // A or left arrow
-			gearDown();
-		}
+
 		else if (key === 'd' || e.keyCode == '39') { // D or right arrow
 			gearUp();
 		}
@@ -354,18 +352,6 @@ function initApp() {
 			}
 
 			gear++;
-			if (gearMeter) gearMeter.innerHTML = (gear === 0) ? 'N' : gear;
-			engageGear(prev, gear);
-		}
-	}
-
-	function gearDown() {
-		if (raceState !== 'racing') {
-			return;
-		}
-		if (gear > 0) {
-			let prev = gear;
-			gear--;
 			if (gearMeter) gearMeter.innerHTML = (gear === 0) ? 'N' : gear;
 			engageGear(prev, gear);
 		}
@@ -978,18 +964,18 @@ function initApp() {
 
 		// prefer mounting into a container with id 'three-container' if present
 		const mount = document.getElementById('three-container');
-		if (mount) {
-			renderer.domElement.style.width = '100%';
-			renderer.domElement.style.height = '100%';
-			renderer.domElement.style.display = 'block';
-			mount.appendChild(renderer.domElement);
-		} else {
-			renderer.domElement.style.position = 'fixed';
-			renderer.domElement.style.left = '0';
-			renderer.domElement.style.top = '0';
-			renderer.domElement.style.zIndex = '0';
-			document.body.appendChild(renderer.domElement);
-		}
+        if (mount) {
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
+            renderer.domElement.style.display = 'block';
+            mount.appendChild(renderer.domElement);
+        } else {
+            renderer.domElement.style.position = 'fixed';
+            renderer.domElement.style.left = '0';
+            renderer.domElement.style.top = '0';
+            renderer.domElement.style.zIndex = '0';
+            document.body.appendChild(renderer.domElement);
+        }
 
 		// No global scene lights: street light poles are the only light sources.
 		setupAtmosphereLights();

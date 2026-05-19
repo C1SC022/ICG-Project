@@ -8,7 +8,7 @@ let Meter = function Meter($elm, config) {
 	let lastWindowMin = null, lastWindowMax = null;
 	let steps = (config.valueMax - config.valueMin) / config.valueStep,
 			angleStep = (config.angleMax - config.angleMin) / steps;
-	let margin = 10;
+	let margin = 15;
 	let value2angle = function(value) {
 		return ((value / (config.valueMax - config.valueMin)) * (config.angleMax - config.angleMin) + config.angleMin);
 	};
@@ -325,14 +325,7 @@ function initMultiApp() {
             }
         }
 
-        gearDown() {
-            if (raceState !== 'racing') return;
-            if (this.gear > 0) {
-                const prev = this.gear;
-                this.gear--;
-                this.engageGear(prev, this.gear);
-            }
-        }
+
 
         engageGear(prevGear, nextGear) {
             if (prevGear === 0 && nextGear > 0) {
@@ -903,8 +896,8 @@ function initMultiApp() {
 
     window.addEventListener('keydown', (e) => {
         const k = e.key.toLowerCase();
-        if (k === 'w') p1.isAccelerating = true; if (k === 'd') p1.gearUp(); if (k === 'a') p1.gearDown();
-        if (e.key === 'ArrowUp') p2.isAccelerating = true; if (e.key === 'ArrowRight') p2.gearUp(); if (e.key === 'ArrowLeft') p2.gearDown();
+        if (k === 'w') p1.isAccelerating = true; if (k === 'd') p1.gearUp();
+        if (e.key === 'ArrowUp') p2.isAccelerating = true; if (e.key === 'ArrowRight') p2.gearUp();
     });
     window.addEventListener('keyup', (e) => {
         if (e.key.toLowerCase() === 'w') p1.isAccelerating = false; if (e.key === 'ArrowUp') p2.isAccelerating = false;

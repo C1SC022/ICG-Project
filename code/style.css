@@ -21,8 +21,8 @@
 .label-value div,.label-value span{font-size:0}
 .meter--big-label .label-value div{font-size:2.1rem}
 .label-value div{font-family:'Roboto Mono',monospace;font-style:italic;font-weight:700;letter-spacing:0.01em}
-.meter--big-label .label-value span{font-size:0.72rem;line-height:1.05;letter-spacing:0.08em}
-.label-value span{display:block;position:absolute;left:50%;top:100%;margin-top:0.08rem;transform:translate3d(-50%,0,0);white-space:nowrap}
+.meter--big-label .label-value span{font-size:0.72rem;line-height:0.8;letter-spacing:0.08em}
+.label-value span{display:block;position:absolute;left:50%;top:100%;margin-top:0.02rem;transform:translate3d(-50%,0,0);white-space:nowrap}
 
 .needle{position:absolute;top:50%;left:50%;display:block;width:4px;height:90px;transform:translate3d(-50%,0,0);transform-origin:50% 0;background-color:#e30;box-shadow:0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)}
 .needle:before,.needle:after{display:block;position:absolute;content:"";width:0;height:0;border-style:solid}
@@ -114,16 +114,20 @@ body{margin:0;min-height:100vh;background:#050810;text-align:center;overflow:hid
 		font-size: 1.2rem;
 	}
 	.meter--big-label .label-value span {
-		font-size: 0.5rem;
-	}
-	.label-unit {
-		top: 80%;
+		font-size: 0.65rem;
+		margin-top: 0.05rem;
 	}
 	.label-unit div {
-		font-size: 0.65rem;
-	}
+    font-size: 0.45rem;
+	margin-top: 0.8rem;
+  }
 	.label-unit span {
-		font-size: 0.45rem;
+		font-size: 0.55rem;
+	}
+	.meter--big-label .label-value span {
+		font-size: 0.4rem;		line-height: 0.8;	}
+	.grad {
+		font-size: 0.65rem;
 	}
 	.grad-tick {
 		height: 0.35em;
