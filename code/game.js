@@ -218,6 +218,82 @@ function initApp() {
 	document.onkeydown = keyDown;
 	document.onkeyup = keyUp;
 
+	// Mobile Touch & Desktop Mouse Controls (for testing)
+	window.addEventListener('touchstart', touchStart, { passive: false });
+	window.addEventListener('touchend', touchEnd, { passive: false });
+	window.addEventListener('touchcancel', touchEnd, { passive: false });
+	window.addEventListener('mousedown', mouseStart);
+	window.addEventListener('mouseup', mouseEnd);
+
+	function touchStart(e) {
+		// Ignore touches on UI buttons
+		if (e.target.closest && (
+			e.target.closest('#restartRaceBtn') || 
+			e.target.closest('#menuRaceBtn') || 
+			e.target.closest('.btn-volume') || 
+			e.target.closest('.race-btn')
+		)) {
+			return;
+		}
+
+		e.preventDefault();
+		handleStart();
+	}
+
+	function touchEnd(e) {
+		if (e.target.closest && (
+			e.target.closest('#restartRaceBtn') || 
+			e.target.closest('#menuRaceBtn') || 
+			e.target.closest('.btn-volume') || 
+			e.target.closest('.race-btn')
+		)) {
+			return;
+		}
+
+		handleEnd();
+	}
+
+	function mouseStart(e) {
+		// Ignore clicks on UI buttons
+		if (e.target.closest && (
+			e.target.closest('#restartRaceBtn') || 
+			e.target.closest('#menuRaceBtn') || 
+			e.target.closest('.btn-volume') || 
+			e.target.closest('.race-btn')
+		)) {
+			return;
+		}
+
+		handleStart();
+	}
+
+	function mouseEnd(e) {
+		if (e.target.closest && (
+			e.target.closest('#restartRaceBtn') || 
+			e.target.closest('#menuRaceBtn') || 
+			e.target.closest('.btn-volume') || 
+			e.target.closest('.race-btn')
+		)) {
+			return;
+		}
+
+		handleEnd();
+	}
+
+	function handleStart() {
+		if (raceState === 'racing') {
+			gearUp();
+		} else {
+			isAccelerating = true;
+		}
+	}
+
+	function handleEnd() {
+		if (raceState !== 'racing') {
+			isAccelerating = false;
+		}
+	}
+
 	function keyDown(e) {
 		e = e || window.event;
 		const key = e.key.toLowerCase();
