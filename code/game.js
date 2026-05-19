@@ -248,10 +248,7 @@ function initApp() {
 
     document.onkeydown = e => {
         const k = (e.key || '').toLowerCase();
-        if (k === 'w' || e.keyCode === 38) {
-            window.SoundManager.resume();
-            isAccelerating = true;
-        }
+        if (k === 'w' || e.keyCode === 38) isAccelerating = true;
         if (k === 's' || e.keyCode === 40) isBraking = true;
         if (k === 'd' || e.keyCode === 39) gearUp();
     };
@@ -262,7 +259,6 @@ function initApp() {
     };
 
     function handlePress() {
-        window.SoundManager.resume();
         if (raceState === 'racing') gearUp();
         else isAccelerating = true;
     }

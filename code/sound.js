@@ -38,29 +38,15 @@ window.SoundManager = {
 
     // Standard auto-resume on first interaction for browser autoplay policy compliance
     const resumeAudio = () => {
-      this.resume();
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
     };
     window.addEventListener('keydown', resumeAudio, { once: true });
     window.addEventListener('click', resumeAudio, { once: true });
-    window.addEventListener('mousedown', resumeAudio, { once: true });
-    window.addEventListener('touchstart', resumeAudio, { once: true });
-    window.addEventListener('touchend', resumeAudio, { once: true });
 
     // Sync button state
     this.syncVolumeButton();
-  },
-
-  /**
-   * Resumes the AudioContext if it is suspended (handles autoplay policies).
-   */
-  resume() {
-    if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume().then(() => {
-        console.log("SoundManager: AudioContext resumed successfully.");
-      }).catch(err => {
-        console.warn("SoundManager: Failed to resume AudioContext:", err);
-      });
-    }
   },
 
   /**
