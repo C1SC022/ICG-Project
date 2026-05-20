@@ -137,6 +137,49 @@ window.CarCatalog = {
     const catalog = this;
     const mode = options.mode || 'default';
 
+    function createBlackBackgroundTexture(sourceTexture) {
+      if (!sourceTexture || !sourceTexture.image || !sourceTexture.image.width || !sourceTexture.image.height) {
+        return sourceTexture;
+      }
+
+      const image = sourceTexture.image;
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+
+      const context = canvas.getContext('2d');
+      if (!context) return sourceTexture;
+
+      context.drawImage(image, 0, 0);
+
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const alpha = pixels[i + 3] / 255;
+        pixels[i] = Math.round(pixels[i] * alpha);
+        pixels[i + 1] = Math.round(pixels[i + 1] * alpha);
+        pixels[i + 2] = Math.round(pixels[i + 2] * alpha);
+        pixels[i + 3] = 255;
+      }
+      context.putImageData(imageData, 0, 0);
+
+      const blackTexture = new THREE.CanvasTexture(canvas);
+      blackTexture.needsUpdate = true;
+      blackTexture.flipY = sourceTexture.flipY;
+      blackTexture.wrapS = sourceTexture.wrapS;
+      blackTexture.wrapT = sourceTexture.wrapT;
+      blackTexture.magFilter = sourceTexture.magFilter;
+      blackTexture.minFilter = sourceTexture.minFilter;
+      blackTexture.anisotropy = sourceTexture.anisotropy;
+      blackTexture.repeat.copy(sourceTexture.repeat);
+      blackTexture.offset.copy(sourceTexture.offset);
+      blackTexture.center.copy(sourceTexture.center);
+      blackTexture.rotation = sourceTexture.rotation;
+      if ('colorSpace' in sourceTexture) blackTexture.colorSpace = sourceTexture.colorSpace;
+      if ('encoding' in sourceTexture) blackTexture.encoding = sourceTexture.encoding;
+      return blackTexture;
+    }
+
     if (!catalog._carQueues) catalog._carQueues = {};
     if (!catalog._carTemplates) catalog._carTemplates = {};
     if (!catalog._carLoading) catalog._carLoading = {};
@@ -196,6 +239,21 @@ window.CarCatalog = {
             materials.forEach(m => {
                 m.side = THREE.DoubleSide;
                 
+                // Fix for car1 wheels rendering white due to transparent PNG being rendered as opaque
+                if (name === 'car1' && m.name) {
+                    const mn = m.name.toLowerCase();
+                    if (mn.indexOf('material.004') >= 0 || mn.indexOf('material.003') >= 0) {
+                    if (m.map) {
+                      m.map = createBlackBackgroundTexture(m.map);
+                      m.map.needsUpdate = true;
+                    }
+                    m.transparent = false;
+                    m.alphaTest = 0;
+                    m.opacity = 1;
+                        m.needsUpdate = true;
+                    }
+                }
+                
                 // Special for car2: make red_light and glass materials glow
                 if (name === 'car2' && m.name) {
                     const mn = m.name.toLowerCase();
@@ -213,6 +271,27 @@ window.CarCatalog = {
                         m.emissive = new THREE.Color(0xffffff);
                         m.emissiveIntensity = mode === 'preview' ? 0.5 : 1.5;
                     }
+                    
+                    // Fix for car2 (Dodge Charger) lacking reflections due to flat/matte material exports
+                    // Red body paint
+                    if (mn === 'mat13') {
+                        m.metalness = 0.78;
+                        m.roughness = 0.16;
+                      m.envMapIntensity = mode === 'preview' ? 1.4 : 1.1;
+                    }
+                    // Grey/silver trim and chrome parts
+                    else if (mn === 'mat0' || mn === 'mat4' || mn === 'mat7' || mn === 'mat10' || mn === 'mat15') {
+                        m.metalness = 0.9;
+                        m.roughness = 0.1;
+                      m.envMapIntensity = mode === 'preview' ? 1.35 : 1.0;
+                    }
+                    // Black parts (make them look like polished black plastic or dark metal)
+                    else if (mn === 'mat1' || mn === 'mat2' || mn === 'mat3' || mn === 'mat5' || mn === 'mat6' || mn === 'mat8' || mn === 'mat9' || mn === 'mat11' || mn === 'mat12' || mn === 'mat14') {
+                        m.metalness = 0.5;
+                        m.roughness = 0.35;
+                      m.envMapIntensity = mode === 'preview' ? 1.15 : 0.95;
+                    }
+                    m.needsUpdate = true;
                 }
             });
         }
