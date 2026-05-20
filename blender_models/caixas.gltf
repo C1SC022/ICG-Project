@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.1.18",
+		"generator":"Khronos glTF Blender I/O v5.1.19",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -8,7 +8,8 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				0
+				0,
+				1
 			]
 		}
 	],
@@ -20,6 +21,15 @@
 				3.2212276458740234,
 				0.9426401257514954,
 				3.8156206607818604
+			]
+		},
+		{
+			"mesh":1,
+			"name":"Cube.001",
+			"translation":[
+				5.960630416870117,
+				1,
+				4.045887470245361
 			]
 		}
 	],
@@ -47,6 +57,20 @@
 						"TEXCOORD_0":2
 					},
 					"indices":3,
+					"material":0
+				}
+			]
+		},
+		{
+			"name":"Cube.002",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":4,
+						"NORMAL":5,
+						"TEXCOORD_0":6
+					},
+					"indices":7,
 					"material":0
 				}
 			]
@@ -99,6 +123,40 @@
 			"componentType":5123,
 			"count":108,
 			"type":"SCALAR"
+		},
+		{
+			"bufferView":4,
+			"componentType":5126,
+			"count":88,
+			"max":[
+				-0.6489344239234924,
+				1.6668484210968018,
+				0.31739217042922974
+			],
+			"min":[
+				-3.964735984802246,
+				-1.0010360479354858,
+				-1.5766569375991821
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":5,
+			"componentType":5126,
+			"count":88,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":6,
+			"componentType":5126,
+			"count":88,
+			"type":"VEC2"
+		},
+		{
+			"bufferView":7,
+			"componentType":5123,
+			"count":144,
+			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
@@ -125,6 +183,30 @@
 			"byteLength":216,
 			"byteOffset":2048,
 			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":1056,
+			"byteOffset":2264,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":1056,
+			"byteOffset":3320,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":704,
+			"byteOffset":4376,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":288,
+			"byteOffset":5080,
+			"target":34963
 		}
 	],
 	"samplers":[
@@ -135,7 +217,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":2264,
+			"byteLength":5368,
 			"uri":"caixas.bin"
 		}
 	]
