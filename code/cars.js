@@ -254,45 +254,7 @@ window.CarCatalog = {
                     }
                 }
                 
-                // Special for car2: make red_light and glass materials glow
-                if (name === 'car2' && m.name) {
-                    const mn = m.name.toLowerCase();
-                    if (mn.indexOf('red_light') >= 0) {
-                        if (mode === 'preview') {
-                            m.emissive = new THREE.Color(0xff0000);
-                            m.emissiveIntensity = 1.0;
-                        } else {
-                            m.emissive = new THREE.Color(0x000000);
-                            m.emissiveIntensity = 0.0;
-                        }
-                    }
-                    if (mn.indexOf('glass') >= 0) {
-                        // Headlights
-                        m.emissive = new THREE.Color(0xffffff);
-                        m.emissiveIntensity = mode === 'preview' ? 0.5 : 1.5;
-                    }
-                    
-                    // Fix for car2 (Dodge Charger) lacking reflections due to flat/matte material exports
-                    // Red body paint
-                    if (mn === 'mat13') {
-                        m.metalness = 0.78;
-                        m.roughness = 0.16;
-                      m.envMapIntensity = mode === 'preview' ? 1.4 : 1.1;
-                    }
-                    // Grey/silver trim and chrome parts
-                    else if (mn === 'mat0' || mn === 'mat4' || mn === 'mat7' || mn === 'mat10' || mn === 'mat15') {
-                        m.metalness = 0.9;
-                        m.roughness = 0.1;
-                      m.envMapIntensity = mode === 'preview' ? 1.35 : 1.0;
-                    }
-                    // Black parts (make them look like polished black plastic or dark metal)
-                    else if (mn === 'mat1' || mn === 'mat2' || mn === 'mat3' || mn === 'mat5' || mn === 'mat6' || mn === 'mat8' || mn === 'mat9' || mn === 'mat11' || mn === 'mat12' || mn === 'mat14') {
-                        m.metalness = 0.5;
-                        m.roughness = 0.35;
-                      m.envMapIntensity = mode === 'preview' ? 1.15 : 0.95;
-                    }
-                    m.needsUpdate = true;
-                }
+                // (Removed car2-specific material tweaks)
             });
         }
 
