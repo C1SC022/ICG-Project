@@ -61,6 +61,15 @@ window.SoundManager = {
   },
 
   /**
+   * Resumes the AudioContext explicitly if it is suspended.
+   */
+  resume() {
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+  },
+
+  /**
    * Toggles the mute state.
    */
   toggleMute() {

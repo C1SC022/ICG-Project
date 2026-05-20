@@ -154,38 +154,45 @@ window.GameScene = {
         const segLen = C.STREAM_SEGMENT_LENGTH;
         const dir = C.STREAM_DIRECTION;
 
+        // Reusable geometries to save memory/FPS
+        const roadGeo = new THREE.PlaneGeometry(8, segLen);
+        const shoulderGeo = new THREE.PlaneGeometry(4, segLen);
+        const sidewalkGeo = new THREE.BoxGeometry(12.45, 0.2, segLen);
+        const sideLineGeo = new THREE.PlaneGeometry(0.12, segLen);
+        const dashGeo = new THREE.PlaneGeometry(0.14, 3.2);
+
         for (let i = 0; i < C.STREAM_SEGMENT_COUNT; i++) {
             const segment = new THREE.Group();
             segment.position.z = C.STREAM_START_Z + i * segLen * (-dir);
 
-            const road = new THREE.Mesh(new THREE.PlaneGeometry(8, segLen), roadMat);
+            const road = new THREE.Mesh(roadGeo, roadMat);
             road.rotation.x = -Math.PI / 2;
             road.position.set(0, -0.49, segLen / 2);
             road.receiveShadow = true;
             segment.add(road);
 
             [-6.2, 6.2].forEach(x => {
-                const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(4, segLen), shoulderMat);
+                const shoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
                 shoulder.rotation.x = -Math.PI / 2;
                 shoulder.position.set(x, -0.495, segLen / 2);
                 shoulder.receiveShadow = true;
                 segment.add(shoulder);
             });
             [-10.2, 10.2].forEach(x => {
-                const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(4, segLen), sidewalkMat);
-                sidewalk.rotation.x = -Math.PI / 2;
-                sidewalk.position.set(x, -0.49, segLen / 2);
+                const sidewalk = new THREE.Mesh(sidewalkGeo, sidewalkMat);
+                sidewalk.position.set(x, -0.44, segLen / 2);
                 sidewalk.receiveShadow = true;
+                sidewalk.castShadow = false; // Essential for performance
                 segment.add(sidewalk);
             });
             [-3.8, 3.8].forEach(x => {
-                const sideLine = new THREE.Mesh(new THREE.PlaneGeometry(0.12, segLen), sideLineMat);
+                const sideLine = new THREE.Mesh(sideLineGeo, sideLineMat);
                 sideLine.rotation.x = -Math.PI / 2;
                 sideLine.position.set(x, -0.485, segLen / 2);
                 segment.add(sideLine);
             });
             for (let lz = 1.6; lz < segLen; lz += 7) {
-                const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 3.2), centerLineMat);
+                const dash = new THREE.Mesh(dashGeo, centerLineMat);
                 dash.rotation.x = -Math.PI / 2;
                 dash.position.set(0, -0.482, lz);
                 segment.add(dash);
@@ -238,11 +245,11 @@ window.GameScene = {
             pair.position.z = C.STREAM_START_Z + i * C.STREET_LIGHT_STEP * (-C.STREAM_DIRECTION);
 
             const l = template.clone(true);
-            l.position.set(-5.1, -0.5, 0); l.rotation.y = Math.PI * 1.5; l.scale.setScalar(0.5);
+            l.position.set(-5.1, -0.34, 0); l.rotation.y = Math.PI * 1.5; l.scale.setScalar(0.5);
             attachLampLight(l);
 
             const r = template.clone(true);
-            r.position.set(5.1, -0.5, 0); r.rotation.y = Math.PI / 2; r.scale.setScalar(0.5);
+            r.position.set(5.1, -0.34, 0); r.rotation.y = Math.PI / 2; r.scale.setScalar(0.5);
             attachLampLight(r);
 
             pair.add(l); pair.add(r);
@@ -258,14 +265,26 @@ window.GameScene = {
         pools.decorations.forEach(d => scene.remove(d));
         pools.decorations.length = 0;
 
-        const propNames = ['caixas', 'hidrante', 'lixo', 'lixo2'];
         const buildingNames = ['build', 'build2'];
-        const side = -1;
+        const side = -1; // buildings/props on the left side
+
+        // Fixed prop layout (group-local coords, building at x = side*12.5 = -12.5):
+        //
+        //  x=-9.8  z=±1.8  → lixo/lixo2 : flanking the staircase entrance
+        //  x=-9.2  z=-3.5  → hidrante   : near the street-light zone at group edge
+        //  x=-11.5 z= 3.0  → caixas     : open sidewalk space beside building facade
+        //
+        const FIXED_PROPS = [
+            { name: 'lixo',    x: side * 8,  z: -1.8, ry: Math.PI * 0.5  },
+            { name: 'lixo2',   x: side * 9.4,  z:  1.5, ry: Math.PI * 1.5  },
+            { name: 'hidrante', x: side - 9, z: -3.5, ry: Math.PI * 0.5              },
+            { name: 'caixas',  x: side - 8, z:  4.5, ry: Math.PI * 0.25 },
+        ];
 
         for (let i = 0; i < C.STREAM_DECORATION_COUNT; i++) {
             const group = new THREE.Group();
             group.position.z = C.STREAM_START_Z + i * C.DECORATION_STEP * (-C.STREAM_DIRECTION);
-            group.position.y = -0.5;
+            group.position.y = -0.34;
 
             const house = window.AssetManager.get(buildingNames[i % buildingNames.length]);
             if (house) {
@@ -274,23 +293,15 @@ window.GameScene = {
                 group.add(house);
             }
 
-            const usedPositions = [];
-            const numProps = 3 + Math.floor(Math.random() * 4);
-            for (let j = 0; j < numProps; j++) {
-                const prop = window.AssetManager.get(propNames[Math.floor(Math.random() * propNames.length)]);
-                if (prop) {
-                    prop.scale.setScalar(0.6);
-                    prop.rotation.y = Math.random() * Math.PI * 2;
-                    let attempts = 0, placed = false;
-                    while (attempts < 15 && !placed) {
-                        const px = side * (8.5 + Math.random() * 2.0);
-                        const pz = (Math.random() - 0.5) * 7.5;
-                        const tooClose = usedPositions.some(p => Math.sqrt((p.x - px) ** 2 + (p.z - pz) ** 2) < 1.8);
-                        if (!tooClose) { prop.position.set(px, 0, pz); group.add(prop); usedPositions.push({ x: px, z: pz }); placed = true; }
-                        attempts++;
-                    }
-                }
+            for (const def of FIXED_PROPS) {
+                const prop = window.AssetManager.get(def.name);
+                if (!prop) continue;
+                prop.scale.setScalar(0.6);
+                prop.rotation.y = def.ry;
+                prop.position.set(def.x, 0, def.z);
+                group.add(prop);
             }
+
             scene.add(group);
             pools.decorations.push(group);
         }
@@ -299,6 +310,7 @@ window.GameScene = {
     /**
      * Recycles a pool of 3D objects that have moved behind the camera.
      */
+
     recycleStreamPool(pool, spacing, camera) {
         const C = window.GAME_CONSTANTS;
         if (!pool.length || !camera) return;

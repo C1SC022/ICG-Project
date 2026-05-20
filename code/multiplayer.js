@@ -338,7 +338,9 @@ function initMultiApp() {
                 document.getElementById('raceCountdown').classList.add('hidden');
                 p1.gear = 1; p2.gear = 1;
             }
-        } else if (raceState === 'racing') {
+        }
+
+        if (raceState === 'racing') {
             raceElapsedTime += delta;
             p1.isAccelerating = true; p1.isBraking = false;
             p2.isAccelerating = true; p2.isBraking = false;
@@ -412,11 +414,11 @@ function initMultiApp() {
 
     window.addEventListener('keydown', e => {
         const k = e.key.toLowerCase();
-        if (k === 'w' || e.key === 'ArrowUp') {
-            window.SoundManager.resume();
-        }
+        if (k === 'w' || e.key === 'ArrowUp') window.SoundManager.resume();
+
         if (k === 'w') p1.isAccelerating = true;
         if (k === 'd') p1.gearUp();
+
         if (e.key === 'ArrowUp') p2.isAccelerating = true;
         if (e.key === 'ArrowRight') p2.gearUp();
     });
