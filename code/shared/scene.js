@@ -331,7 +331,8 @@ window.GameScene = {
      */
     updateStreetLightVisibility(streetLightPairs, camera) {
         if (!camera) return;
-        const activeDistance = 150;
+        const C = window.GAME_CONSTANTS;
+        const activeDistance = C.STREAM_RECYCLE_BEHIND_DISTANCE;
         streetLightPairs.forEach(pair => {
             const isActive = Math.abs(pair.position.z - camera.position.z) < activeDistance;
             pair.traverse(node => {
