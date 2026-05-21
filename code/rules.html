@@ -28,7 +28,7 @@
       background: radial-gradient(ellipse at 20% 10%, rgba(255, 40, 150, 0.04) 0%, transparent 15%),
                   radial-gradient(ellipse at 80% 90%, rgba(0, 230, 217, 0.03) 0%, transparent 15%),
                   linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
-      min-height: 100vh;
+      min-height: calc(var(--vh, 1vh) * 100);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -324,5 +324,18 @@
       </p>
     </div>
   </div>
+  <script>
+    (function(){
+      function setVh(){
+        document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+        document.body.style.minHeight = 'calc(var(--vh, 1vh) * 100 + 1px)';
+        document.documentElement.style.overflow = 'auto';
+        document.body.style.overflow = 'auto';
+      }
+      setVh();
+      window.addEventListener('resize', setVh);
+      window.addEventListener('orientationchange', setVh);
+    })();
+  </script>
 </body>
 </html>

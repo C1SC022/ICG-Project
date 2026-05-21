@@ -90,5 +90,18 @@
 		}
 	);
 </script>
+<script>
+	(function(){
+		function setVh(){
+			document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+			document.body.style.minHeight = 'calc(var(--vh, 1vh) * 100 + 1px)';
+			document.documentElement.style.overflow = 'auto';
+			document.body.style.overflow = 'auto';
+		}
+		setVh();
+		window.addEventListener('resize', setVh);
+		window.addEventListener('orientationchange', setVh);
+	})();
+</script>
 </body>
 </html>

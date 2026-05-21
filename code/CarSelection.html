@@ -34,7 +34,7 @@
     body {
       font-family: Rajdhani, system-ui, sans-serif;
       color: var(--text);
-      overflow: hidden;
+      overflow: auto;
       background:
         radial-gradient(ellipse at 20% 10%, rgba(255, 45, 149, 0.08) 0%, transparent 14%),
         radial-gradient(ellipse at 80% 90%, rgba(0, 230, 217, 0.06) 0%, transparent 16%),
@@ -55,7 +55,7 @@
       position: relative;
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
-      height: 100vh;
+      height: calc(var(--vh, 1vh) * 100);
       transition: grid-template-columns 0.5s ease;
     }
 
@@ -371,15 +371,15 @@
     .ready-overlay h2 { font-size: 3rem; margin-bottom: 2rem; color: var(--cyan); }
 
     @media (max-width: 1200px) {
-        .split--multi { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: auto; overflow: auto; }
+      .split--multi { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: auto; overflow: auto; }
         .split--multi .panel { height: 50vh; }
     }
     @media (max-width: 720px) and (orientation: portrait) {
         .split {
-            grid-template-columns: 1fr !important;
-            grid-template-rows: 1.15fr 0.85fr !important;
-            height: 100vh;
-            overflow: hidden;
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 1.15fr 0.85fr !important;
+        height: calc(var(--vh, 1vh) * 100);
+        overflow: hidden;
         }
         .split--multi {
             grid-template-columns: 1fr !important;
@@ -898,6 +898,19 @@
         });
     });
 
+  </script>
+  <script>
+    (function(){
+      function setVh(){
+        document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+        document.body.style.minHeight = 'calc(var(--vh, 1vh) * 100 + 1px)';
+        document.documentElement.style.overflow = 'auto';
+        document.body.style.overflow = 'auto';
+      }
+      setVh();
+      window.addEventListener('resize', setVh);
+      window.addEventListener('orientationchange', setVh);
+    })();
   </script>
 </body>
 </html>
